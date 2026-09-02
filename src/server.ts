@@ -1,6 +1,7 @@
 import type { Server } from 'http';
 import { app } from './app';
 import { config } from './config';
+import { startExpireStalePaymentsJob } from './jobs/expireStalePayments';
 import { prisma } from './shared/prisma';
 import { disconnectRedis } from './shared/redis';
 import { initMailer } from './utils/sendEmail';
@@ -44,6 +45,7 @@ const start = async (): Promise<void> => {
   const server: Server = app.listen(config.PORT, HOST, () => {
     printStartupBanner(mailStatus);
   });
+  startExpireStalePaymentsJob();
 
   const shutdown = async (signal: string): Promise<void> => {
     log(`${signal} received. Closing server.`);

@@ -33,6 +33,13 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional().default(''),
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM: z.string().optional().default('Bidyapith <noreply@bidyapith.edu>'),
+
+  PAYMENT_GATEWAY: z.enum(['STRIPE', 'SSLCOMMERZ']).default('STRIPE'),
+  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
+  PAYMENT_SUCCESS_URL: z.string().url().default('http://localhost:3000/payment/success'),
+  PAYMENT_CANCEL_URL: z.string().url().default('http://localhost:3000/payment/cancel'),
+  DEFAULT_CURRENCY: z.string().length(3).default('BDT'),
 });
 
 const parsed = envSchema.safeParse(process.env);

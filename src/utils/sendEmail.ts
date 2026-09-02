@@ -3,7 +3,12 @@ import path from 'path';
 import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '../config';
 
-type EmailTemplate = 'welcome' | 'passwordReset' | 'accountCreated' | 'resultPublished';
+type EmailTemplate =
+  | 'welcome'
+  | 'passwordReset'
+  | 'accountCreated'
+  | 'resultPublished'
+  | 'paymentReceipt';
 
 type SendEmailInput = {
   to: string;
@@ -19,6 +24,7 @@ const templateCache: Record<EmailTemplate, string> = {
   passwordReset: fs.readFileSync(path.join(templatesDir, 'passwordReset.html'), 'utf8'),
   accountCreated: fs.readFileSync(path.join(templatesDir, 'accountCreated.html'), 'utf8'),
   resultPublished: fs.readFileSync(path.join(templatesDir, 'resultPublished.html'), 'utf8'),
+  paymentReceipt: fs.readFileSync(path.join(templatesDir, 'paymentReceipt.html'), 'utf8'),
 };
 
 const SMTP_VERIFY_TIMEOUT_MS = 8_000;

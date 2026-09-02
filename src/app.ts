@@ -1,15 +1,16 @@
-import express, { type NextFunction, type Request, type Response } from 'express';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import compression from 'compression';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import { StatusCodes } from 'http-status-codes';
 import { config } from './config';
 import { requestLogger } from './middlewares/requestLogger';
+import { PaymentController } from './modules/payment/payment.controller';
 import { AppRoutes } from './routes';
 import { ApiError } from './shared/ApiError';
-import { sendResponse } from './shared/sendResponse';
 import { globalErrorHandler } from './shared/globalErrorHandler';
+import { sendResponse } from './shared/sendResponse';
 
 export const app = express();
 
@@ -26,6 +27,11 @@ app.use(
     origin: config.CLIENT_URL,
     credentials: true,
   }),
+);
+app.post(
+  '/api/v1/payments/webhook',
+  express.raw({ type: 'application/json' }),
+  PaymentController.webhook,
 );
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
