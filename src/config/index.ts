@@ -44,14 +44,53 @@ const envSchema = z.object({
   DEFAULT_CURRENCY: z.string().length(3).default('BDT'),
 });
 
+export type Config = z.infer<typeof envSchema>;
+
+/** Vercel sets CI during `vercel build` while it introspects the Express app. Runtime does not. */
+const isVercelBuild = process.env['VERCEL'] === '1' && process.env['CI'] === '1';
+
+const BUILD_PLACEHOLDERS: Config = {
+  NODE_ENV: 'production',
+  PORT: 5001,
+  DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/bidyapith',
+  DIRECT_URL: '',
+  REDIS_URL: '',
+  PG_POOL_MAX: 1,
+  PG_POOL_TIMEOUT_MS: 20_000,
+  JWT_ACCESS_SECRET: '0'.repeat(32),
+  JWT_REFRESH_SECRET: '1'.repeat(32),
+  JWT_ACCESS_EXPIRES_IN: '15m',
+  JWT_REFRESH_EXPIRES_IN: '30d',
+  BCRYPT_SALT_ROUNDS: 12,
+  GOOGLE_CLIENT_ID: '',
+  CLIENT_URL: 'http://localhost:3000',
+  CLOUDINARY_CLOUD_NAME: 'build',
+  CLOUDINARY_API_KEY: 'build',
+  CLOUDINARY_API_SECRET: 'build',
+  SMTP_HOST: '',
+  SMTP_PORT: 587,
+  SMTP_USER: '',
+  SMTP_PASS: '',
+  SMTP_FROM: 'Bidyapith <noreply@bidyapith.edu>',
+  CRON_SECRET: '',
+  PAYMENT_GATEWAY: 'STRIPE',
+  STRIPE_SECRET_KEY: 'sk_test_build_placeholder',
+  STRIPE_WEBHOOK_SECRET: 'whsec_build_placeholder',
+  PAYMENT_SUCCESS_URL: 'http://localhost:3000/payment/success',
+  PAYMENT_CANCEL_URL: 'http://localhost:3000/payment/cancel',
+  DEFAULT_CURRENCY: 'BDT',
+};
+
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   const details = parsed.error.issues
     .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
     .join('\n');
-  throw new Error(`Invalid environment variables:\n${details}`);
+  if (!isVercelBuild) {
+    throw new Error(`Invalid environment variables:\n${details}`);
+  }
+  console.warn(`> Env incomplete during Vercel build; using placeholders.\n${details}`);
 }
 
-export const config = parsed.data;
-export type Config = typeof config;
+export const config: Config = parsed.success ? parsed.data : BUILD_PLACEHOLDERS;

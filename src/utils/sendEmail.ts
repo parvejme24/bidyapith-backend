@@ -30,14 +30,21 @@ const resolveTemplatesDir = (): string => {
   return found;
 };
 
-const templatesDir = resolveTemplatesDir();
+let templateCache: Record<EmailTemplate, string> | null = null;
 
-const templateCache: Record<EmailTemplate, string> = {
-  welcome: fs.readFileSync(path.join(templatesDir, 'welcome.html'), 'utf8'),
-  passwordReset: fs.readFileSync(path.join(templatesDir, 'passwordReset.html'), 'utf8'),
-  accountCreated: fs.readFileSync(path.join(templatesDir, 'accountCreated.html'), 'utf8'),
-  resultPublished: fs.readFileSync(path.join(templatesDir, 'resultPublished.html'), 'utf8'),
-  paymentReceipt: fs.readFileSync(path.join(templatesDir, 'paymentReceipt.html'), 'utf8'),
+const loadTemplates = (): Record<EmailTemplate, string> => {
+  if (templateCache !== null) {
+    return templateCache;
+  }
+  const templatesDir = resolveTemplatesDir();
+  templateCache = {
+    welcome: fs.readFileSync(path.join(templatesDir, 'welcome.html'), 'utf8'),
+    passwordReset: fs.readFileSync(path.join(templatesDir, 'passwordReset.html'), 'utf8'),
+    accountCreated: fs.readFileSync(path.join(templatesDir, 'accountCreated.html'), 'utf8'),
+    resultPublished: fs.readFileSync(path.join(templatesDir, 'resultPublished.html'), 'utf8'),
+    paymentReceipt: fs.readFileSync(path.join(templatesDir, 'paymentReceipt.html'), 'utf8'),
+  };
+  return templateCache;
 };
 
 const SMTP_VERIFY_TIMEOUT_MS = 8_000;
@@ -125,11 +132,15 @@ export const sendEmail = async ({ to, subject, template, data }: SendEmailInput)
   }
 
   try {
+    const html = loadTemplates()[template];
+    if (html === undefined) {
+      throw new Error(`Missing email template ${template}`);
+    }
     const info = await transporter.sendMail({
       from: config.SMTP_FROM,
       to,
       subject,
-      html: interpolate(templateCache[template], data),
+      html: interpolate(html, data),
     });
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (typeof previewUrl === 'string') {

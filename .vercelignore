@@ -1,0 +1,7 @@
+.cursor
+.git
+tests
+docs
+.github
+*.log
+.DS_Store

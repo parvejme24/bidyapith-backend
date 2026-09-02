@@ -1,7 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "express",
+  "buildCommand": "npx prisma generate",
+  "installCommand": "npm install",
   "functions": {
     "src/app.ts": {
+      "maxDuration": 30,
+      "includeFiles": "src/templates/**"
+    },
+    "src/server.ts": {
       "maxDuration": 30,
       "includeFiles": "src/templates/**"
     }

@@ -106,7 +106,7 @@ npx prisma migrate deploy
 npm run db:seed   # optional demo data
 ```
 
-3. **Import the GitHub repo** at [vercel.com/new](https://vercel.com/new). Framework: Express. Root: this repository.
+3. **Import the GitHub repo** at [vercel.com/new](https://vercel.com/new). Framework: Express. Root: this repository. The Vercel build is `npx prisma generate` only (TypeScript is compiled by the Express builder, not `tsc`).
 4. **Environment variables** (Production + Preview). Set these *before* the first deploy — boot throws if any required value is missing.
 
 | Variable | Notes |

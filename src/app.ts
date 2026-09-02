@@ -11,9 +11,6 @@ import { AppRoutes } from './routes';
 import { ApiError } from './shared/ApiError';
 import { globalErrorHandler } from './shared/globalErrorHandler';
 import { sendResponse } from './shared/sendResponse';
-import { initMailer } from './utils/sendEmail';
-
-void initMailer();
 
 export const app = express();
 export default app;

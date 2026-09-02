@@ -75,3 +75,6 @@ const start = async (): Promise<void> => {
 if (process.env['VERCEL'] !== '1') {
   void start();
 }
+
+export { app };
+export default app;

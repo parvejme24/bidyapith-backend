@@ -21,14 +21,20 @@ const poolSettings = (() => {
   const resolvedMax =
     Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : config.PG_POOL_MAX;
   const max = process.env['VERCEL'] === '1' ? Math.min(resolvedMax, 1) : resolvedMax;
+  const connectionString = url.toString();
+  const needsSsl =
+    process.env['VERCEL'] === '1' ||
+    connectionString.includes('sslmode=require') ||
+    connectionString.includes('neon.tech');
 
   return {
-    connectionString: url.toString().replace(/([?&])sslmode=require\b/, '$1sslmode=verify-full'),
+    connectionString,
     max,
     connectionTimeoutMillis:
       Number.isFinite(parsedTimeoutSec) && parsedTimeoutSec > 0
         ? parsedTimeoutSec * 1000
         : config.PG_POOL_TIMEOUT_MS,
+    ssl: needsSsl ? { rejectUnauthorized: true } : undefined,
   };
 })();
 
@@ -38,6 +44,7 @@ const pool =
     connectionString: poolSettings.connectionString,
     max: poolSettings.max,
     connectionTimeoutMillis: poolSettings.connectionTimeoutMillis,
+    ...(poolSettings.ssl === undefined ? {} : { ssl: poolSettings.ssl }),
   });
 
 const adapter = new PrismaPg(pool);
