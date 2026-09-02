@@ -45,7 +45,7 @@ const start = async (): Promise<void> => {
   const server: Server = app.listen(config.PORT, HOST, () => {
     printStartupBanner(mailStatus);
   });
-  // Vercel is serverless — the cron in vercel.json hits GET /api/v1/payments/expire-stale.
+  // Long-running hosts (Render, local). Serverless platforms skip listen() and the interval job.
   if (process.env['VERCEL'] !== '1') {
     startExpireStalePaymentsJob();
   }

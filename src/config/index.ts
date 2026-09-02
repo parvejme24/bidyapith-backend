@@ -1,44 +1,64 @@
+import fs from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-dotenv.config({ quiet: true });
+const loadEnvFiles = (): void => {
+  const candidates = ['/etc/secrets/.env', path.join(process.cwd(), '.env')];
+  for (const filePath of candidates) {
+    if (fs.existsSync(filePath)) {
+      dotenv.config({ path: filePath, quiet: true });
+    }
+  }
+  dotenv.config({ quiet: true });
+};
+
+loadEnvFiles();
+
+const optionalString = z.preprocess(
+  (value) => (value === undefined || value === null ? '' : value),
+  z.string(),
+);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(5001),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  DIRECT_URL: z.string().optional().default(''),
-  REDIS_URL: z.string().optional().default(''),
+  DATABASE_URL: z.string().min(1, 'Set DATABASE_URL in Render → Environment'),
+  DIRECT_URL: optionalString,
+  REDIS_URL: optionalString,
   PG_POOL_MAX: z.coerce.number().int().positive().max(50).default(10),
   PG_POOL_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
 
-  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
-  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  JWT_ACCESS_SECRET: z.string().min(32, 'Set JWT_ACCESS_SECRET (≥32 chars) in Render → Environment'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'Set JWT_REFRESH_SECRET (≥32 chars) in Render → Environment'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
 
-  GOOGLE_CLIENT_ID: z.string().optional().default(''),
+  GOOGLE_CLIENT_ID: optionalString,
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
 
-  CLOUDINARY_CLOUD_NAME: z.string(),
-  CLOUDINARY_API_KEY: z.string(),
-  CLOUDINARY_API_SECRET: z.string(),
+  CLOUDINARY_CLOUD_NAME: optionalString,
+  CLOUDINARY_API_KEY: optionalString,
+  CLOUDINARY_API_SECRET: optionalString,
 
-  SMTP_HOST: z.string().optional().default(''),
+  SMTP_HOST: optionalString,
   SMTP_PORT: z.preprocess(
     (value) => (value === '' || value === undefined ? 587 : value),
     z.coerce.number().int().positive(),
   ),
-  SMTP_USER: z.string().optional().default(''),
-  SMTP_PASS: z.string().optional().default(''),
+  SMTP_USER: optionalString,
+  SMTP_PASS: optionalString,
   SMTP_FROM: z.string().optional().default('Bidyapith <noreply@bidyapith.edu>'),
 
-  CRON_SECRET: z.string().optional().default(''),
+  CRON_SECRET: optionalString,
 
   PAYMENT_GATEWAY: z.enum(['STRIPE', 'SSLCOMMERZ']).default('STRIPE'),
-  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
+  STRIPE_SECRET_KEY: z.string().min(1, 'Set STRIPE_SECRET_KEY in Render → Environment'),
+  STRIPE_WEBHOOK_SECRET: z.preprocess(
+    (value) => (value === '' || value === undefined ? 'whsec_dev_placeholder' : value),
+    z.string().min(1),
+  ),
   PAYMENT_SUCCESS_URL: z.string().url().default('http://localhost:3000/payment/success'),
   PAYMENT_CANCEL_URL: z.string().url().default('http://localhost:3000/payment/cancel'),
   DEFAULT_CURRENCY: z.string().length(3).default('BDT'),
@@ -88,7 +108,9 @@ if (!parsed.success) {
     .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
     .join('\n');
   if (!isVercelBuild) {
-    throw new Error(`Invalid environment variables:\n${details}`);
+    throw new Error(
+      `Invalid environment variables:\n${details}\n\nRender does not use your local .env file. Add these keys in the service → Environment, or upload .env as a Secret File named ".env" (available at /etc/secrets/.env), then Manual Deploy.`,
+    );
   }
   console.warn(`> Env incomplete during Vercel build; using placeholders.\n${details}`);
 }

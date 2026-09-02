@@ -94,46 +94,96 @@ Before submitting, from another terminal:
 bash scripts/verify-deployment.sh http://localhost:5001
 ```
 
-## Deploy on Vercel
+## Deploy on Render
 
-The API is a single Express function (`src/app.ts` default export). Local `npm run dev` still uses `src/server.ts` (`listen` + in-process jobs).
+This API is a long-running Node process (`src/server.ts` listens on `0.0.0.0` and `PORT`). Render is the host. Render **clones your Git repo as source**; the running service lives on Render.
 
-1. **Database.** Use Neon’s **pooled** connection for `DATABASE_URL` and the **direct** connection for `DIRECT_URL`. Put the Vercel function in the same region as the Neon project (Project → Settings → Functions).
-2. **Migrate once** against production (from your laptop, with production URLs in `.env`):
+Use a **Starter** (or higher) web service so the instance stays up. Free instances sleep; the in-process stale-payment job and the first request after idle will suffer.
+
+### 1. Database
+
+Keep Neon (or any Postgres). Use the **pooled** URL for `DATABASE_URL` and the **direct** URL for `DIRECT_URL`. Put the Render service in the **same region** as the database (Neon `us-east-2` → Render **Ohio**).
+
+From your laptop, with production URLs in `.env`:
 
 ```bash
 npx prisma migrate deploy
 npm run db:seed   # optional demo data
 ```
 
-3. **Import the GitHub repo** at [vercel.com/new](https://vercel.com/new). Framework: Express. Root: this repository. The Vercel build is `npx prisma generate` only (TypeScript is compiled by the Express builder, not `tsc`).
-4. **Environment variables** (Production + Preview). Set these *before* the first deploy — boot throws if any required value is missing.
+`preDeployCommand` in `render.yaml` also runs `prisma migrate deploy` on every deploy.
 
-| Variable | Notes |
+### 2. Create the web service
+
+1. Open [dashboard.render.com](https://dashboard.render.com) → **New** → **Web Service**.
+2. Connect the Git repository that contains this project. Root directory: repository root.
+3. Settings:
+
+| Field | Value |
 |---|---|
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | Neon pooled URL |
-| `DIRECT_URL` | Neon direct URL (migrations) |
-| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | ≥ 32 characters each |
-| `CLIENT_URL` | Frontend origin (CORS + cookies). Refresh cookie is `SameSite=strict`, so the UI must share this site or you will need a different cookie policy. |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Required by config |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Required |
-| `PAYMENT_SUCCESS_URL` / `PAYMENT_CANCEL_URL` | Frontend payment return URLs |
-| `SMTP_*` | Optional; emails are skipped if `SMTP_HOST` is empty |
-| `REDIS_URL` | Optional |
-| `CRON_SECRET` | Vercel injects this for Cron. Copy it from the project if you need to call the job yourself. |
+| Runtime | Node |
+| Instance region | Ohio (match Neon `us-east-2`) |
+| Branch | `main` |
+| Build command | `npm ci --include=dev && npm run build` |
+| Pre-deploy command | `npx prisma migrate deploy` |
+| Start command | `node dist/server.js` |
+| Health check path | `/health` |
 
-Leave `PG_POOL_MAX` unset on Vercel (the process caps the pool at 1 so isolates do not exhaust Neon).
+Or apply [render.yaml](render.yaml) with **New** → **Blueprint**.
 
-5. Deploy. Health: `GET https://<project>.vercel.app/health`.
-6. Stripe webhook endpoint: `https://<project>.vercel.app/api/v1/payments/webhook` (raw body, signature header).
-7. Confirm:
+Do **not** set `PORT` yourself. Render injects it; the app already reads `config.PORT`.
+
+### 3. Environment variables (this is why the last deploy crashed)
+
+Render never reads your laptop `.env`. If those keys are missing, `node dist/server.js` throws `expected string, received undefined`.
+
+**Fastest:** Environment → **Secret Files** → add a file named `.env` → paste your local `.env` contents (use `CLOUDINARY_*`, not `CLAUDINARY_*`) → **Save** → **Manual Deploy**.
+
+**Or** add these keys one by one under **Environment** (copy values from local `.env`):
+
+`DATABASE_URL`, `DIRECT_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CLIENT_URL`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYMENT_SUCCESS_URL`, `PAYMENT_CANCEL_URL`, `NODE_ENV=production`, plus Cloudinary / SMTP / Redis if you use them.
+
+Do **not** set `PORT`. After saving, deploy again. Saving env vars does not restart an already-failed deploy by itself.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `NODE_ENV` | yes | `production` |
+| `NODE_VERSION` | yes | `20` |
+| `DATABASE_URL` | yes | Neon pooled URL (`sslmode=require`) |
+| `DIRECT_URL` | yes | Neon direct URL (migrations) |
+| `JWT_ACCESS_SECRET` | yes | ≥ 32 characters |
+| `JWT_REFRESH_SECRET` | yes | ≥ 32 characters, different from access |
+| `CLIENT_URL` | yes | Frontend origin (CORS + cookies) |
+| `CLOUDINARY_CLOUD_NAME` | for avatars | |
+| `CLOUDINARY_API_KEY` | for avatars | |
+| `CLOUDINARY_API_SECRET` | for avatars | |
+| `STRIPE_SECRET_KEY` | for payments | |
+| `STRIPE_WEBHOOK_SECRET` | for payments | From Stripe after you add the webhook URL |
+| `PAYMENT_SUCCESS_URL` | yes | e.g. `https://your-frontend/payment/success` |
+| `PAYMENT_CANCEL_URL` | yes | e.g. `https://your-frontend/payment/cancel` |
+| `PAYMENT_GATEWAY` | no | default `STRIPE` |
+| `DEFAULT_CURRENCY` | no | default `BDT` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | no | Emails skipped if `SMTP_HOST` is empty |
+| `REDIS_URL` | no | Cache degrades if empty |
+| `GOOGLE_CLIENT_ID` | no | Google sign-in |
+| `PG_POOL_MAX` | no | `10` is fine on a single Render process |
+| `CRON_SECRET` | if you add a Cron Job | Bearer token for `GET /api/v1/payments/expire-stale` |
+
+### 4. Deploy and verify
+
+**Manual Deploy** → **Deploy latest commit**. Wait until the log shows `All is OK` and health checks pass.
 
 ```bash
-bash scripts/verify-deployment.sh https://<project>.vercel.app
+bash scripts/verify-deployment.sh https://<your-service>.onrender.com
 ```
 
-`setInterval` does not run on Vercel. Stale `INITIATED` payments are cancelled by the Cron job in `vercel.json` (`GET /api/v1/payments/expire-stale`, daily so it works on Hobby). On Pro you can change the schedule to `0 * * * *`.
+- Health: `GET https://<your-service>.onrender.com/health`
+- Stripe webhook: `https://<your-service>.onrender.com/api/v1/payments/webhook`
+- Stale payments: the web process runs `setInterval` while it is awake. On a sleeping Free instance, add a Render **Cron Job** (`GET /api/v1/payments/expire-stale` with `Authorization: Bearer $CRON_SECRET`) every hour.
+
+### 5. After the URL exists
+
+Update Stripe webhook, `CLIENT_URL`, and payment success/cancel URLs to the real Render and frontend origins, then restart the service.
 
 ## API overview
 

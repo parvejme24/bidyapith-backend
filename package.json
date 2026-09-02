@@ -7,7 +7,6 @@
     "dev": "nodemon",
     "build": "prisma generate && tsc && mkdir -p dist/templates && cp src/templates/*.html dist/templates/",
     "postinstall": "prisma generate",
-    "prestart": "npm run build",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
