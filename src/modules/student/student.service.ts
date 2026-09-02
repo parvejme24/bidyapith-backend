@@ -1,11 +1,15 @@
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '../../shared/ApiError';
-import { paginate, paginationMeta, type PaginationQuery } from '../../shared/paginate';
+import { type PaginationQuery, paginate, paginationMeta } from '../../shared/paginate';
 import { prisma } from '../../shared/prisma';
 import { buildWhere } from '../../shared/queryBuilder';
 import { findUserIdsByNameEmail } from '../../shared/search';
-import { STUDENT_LIST_SELECT, STUDENT_PROFILE_SELECT, USER_PUBLIC_SELECT } from '../user/user.constant';
+import {
+  STUDENT_LIST_SELECT,
+  STUDENT_PROFILE_SELECT,
+  USER_PUBLIC_SELECT,
+} from '../user/user.constant';
 import { STUDENT_SORT_FIELDS } from './student.constant';
 import type { StudentAdminPatch, StudentMePatch } from './student.interface';
 

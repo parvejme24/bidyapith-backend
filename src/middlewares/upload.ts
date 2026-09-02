@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import multer, { MulterError } from 'multer';
 import { StatusCodes } from 'http-status-codes';
+import multer, { MulterError } from 'multer';
 import { ApiError } from '../shared/ApiError';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;

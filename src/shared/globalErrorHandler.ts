@@ -1,5 +1,5 @@
-import type { NextFunction, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { ZodError } from 'zod';
 import { config } from '../config';
@@ -14,8 +14,7 @@ type ErrorEnvelope = {
 };
 
 const formatZodPath = (path: PropertyKey[]): string =>
-  path.filter((segment) => segment !== 'body' && segment !== 'cookies').join('.') ||
-  'body';
+  path.filter((segment) => segment !== 'body' && segment !== 'cookies').join('.') || 'body';
 
 export const globalErrorHandler = (
   err: unknown,

@@ -1,11 +1,4 @@
-import {
-  AuditAction,
-  AuthProvider,
-  Prisma,
-  Role,
-  UserStatus,
-  type User,
-} from '@prisma/client';
+import { AuditAction, AuthProvider, Prisma, Role, type User, UserStatus } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
 import { StatusCodes } from 'http-status-codes';
 import { config } from '../../config';
@@ -22,11 +15,7 @@ import {
 } from '../../utils/jwt';
 import { comparePassword, hashPassword, hashPasswordSync } from '../../utils/password';
 import { sendEmail } from '../../utils/sendEmail';
-import {
-  AUTH_MESSAGES,
-  EMAIL_VERIFICATION_TTL_MS,
-  PASSWORD_RESET_TTL_MS,
-} from './auth.constant';
+import { AUTH_MESSAGES, EMAIL_VERIFICATION_TTL_MS, PASSWORD_RESET_TTL_MS } from './auth.constant';
 import type {
   AuthSession,
   ChangePasswordInput,
@@ -253,8 +242,6 @@ const googleLogin = async (input: GoogleInput, meta: RequestMeta): Promise<AuthS
 
   let email: string;
   let emailVerified = false;
-  let firstName = 'Student';
-  let lastName = 'User';
   let googleId: string;
 
   try {
@@ -269,23 +256,6 @@ const googleLogin = async (input: GoogleInput, meta: RequestMeta): Promise<AuthS
     email = payload.email.toLowerCase().trim();
     emailVerified = payload.email_verified === true;
     googleId = payload.sub;
-    if (payload.given_name !== undefined && payload.given_name.length > 0) {
-      firstName = payload.given_name;
-    } else if (payload.name !== undefined) {
-      const parts = payload.name.trim().split(/\s+/);
-      const head = parts[0];
-      if (head !== undefined) {
-        firstName = head;
-      }
-    }
-    if (payload.family_name !== undefined && payload.family_name.length > 0) {
-      lastName = payload.family_name;
-    } else if (payload.name !== undefined) {
-      const parts = payload.name.trim().split(/\s+/);
-      if (parts.length > 1) {
-        lastName = parts.slice(1).join(' ');
-      }
-    }
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -368,30 +338,32 @@ const refreshToken = async (rawToken: string): Promise<AuthSession> => {
 
   assertActiveUser(stored.user);
 
-  const { accessToken, refreshToken: nextRefresh, updated } = await prisma.$transaction(
-    async (tx) => {
-      await tx.refreshToken.update({
-        where: { id: stored.id },
-        data: { revokedAt: new Date() },
-      });
+  const {
+    accessToken,
+    refreshToken: nextRefresh,
+    updated,
+  } = await prisma.$transaction(async (tx) => {
+    await tx.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
 
-      const updatedUser = await tx.user.findUnique({ where: { id: stored.userId } });
-      if (updatedUser === null) {
-        throw new ApiError(StatusCodes.UNAUTHORIZED, AUTH_MESSAGES.invalidRefresh);
-      }
+    const updatedUser = await tx.user.findUnique({ where: { id: stored.userId } });
+    if (updatedUser === null) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, AUTH_MESSAGES.invalidRefresh);
+    }
 
-      await createAuditLog(tx, {
-        actorId: stored.userId,
-        action: AuditAction.UPDATE,
-        entity: 'RefreshToken',
-        entityId: stored.id,
-        after: { event: 'TOKEN_REFRESH' },
-      });
+    await createAuditLog(tx, {
+      actorId: stored.userId,
+      action: AuditAction.UPDATE,
+      entity: 'RefreshToken',
+      entityId: stored.id,
+      after: { event: 'TOKEN_REFRESH' },
+    });
 
-      const session = await createSession(tx, updatedUser, stored.family);
-      return { ...session, updated: updatedUser };
-    },
-  );
+    const session = await createSession(tx, updatedUser, stored.family);
+    return { ...session, updated: updatedUser };
+  });
 
   return { accessToken, refreshToken: nextRefresh, user: toPublicUser(updated) };
 };
@@ -424,10 +396,7 @@ const logout = async (rawToken: string, userId: string): Promise<null> => {
   return null;
 };
 
-const changePassword = async (
-  userId: string,
-  input: ChangePasswordInput,
-): Promise<AuthSession> => {
+const changePassword = async (userId: string, input: ChangePasswordInput): Promise<AuthSession> => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (user === null || user.deletedAt !== null) {
     throw new ApiError(StatusCodes.UNAUTHORIZED, AUTH_MESSAGES.invalidCredentials);

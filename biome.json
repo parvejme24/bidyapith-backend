@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["src/**", "tests/**", "prisma/seed.ts"]
+    "includes": ["src/**", "!src/templates", "tests/**", "prisma/seed.ts"]
   },
   "formatter": {
     "enabled": true,

@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
-import { ApiError } from './ApiError';
 import { PAGINATION } from '../constants/pagination';
+import { ApiError } from './ApiError';
 
 export type PaginationQuery = {
   page?: string | number | undefined;
@@ -30,13 +30,18 @@ const toPositiveInt = (value: string | number | undefined, fallback: number): nu
   return Math.floor(parsed);
 };
 
-export const paginate = (query: PaginationQuery, allowedSortFields: readonly string[]): PaginateResult => {
+export const paginate = (
+  query: PaginationQuery,
+  allowedSortFields: readonly string[],
+): PaginateResult => {
   const page = toPositiveInt(query.page, PAGINATION.DEFAULT_PAGE);
   const requestedLimit = toPositiveInt(query.limit, PAGINATION.DEFAULT_LIMIT);
   const limit = Math.min(requestedLimit, PAGINATION.MAX_LIMIT);
 
   const sortBy =
-    query.sortBy !== undefined && query.sortBy.length > 0 ? query.sortBy : PAGINATION.DEFAULT_SORT_BY;
+    query.sortBy !== undefined && query.sortBy.length > 0
+      ? query.sortBy
+      : PAGINATION.DEFAULT_SORT_BY;
 
   if (!allowedSortFields.includes(sortBy)) {
     throw new ApiError(
@@ -45,7 +50,8 @@ export const paginate = (query: PaginationQuery, allowedSortFields: readonly str
     );
   }
 
-  const sortOrder: 'asc' | 'desc' = query.sortOrder === 'asc' ? 'asc' : PAGINATION.DEFAULT_SORT_ORDER;
+  const sortOrder: 'asc' | 'desc' =
+    query.sortOrder === 'asc' ? 'asc' : PAGINATION.DEFAULT_SORT_ORDER;
 
   return {
     page,

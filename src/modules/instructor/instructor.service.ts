@@ -1,7 +1,7 @@
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '../../shared/ApiError';
-import { paginate, paginationMeta, type PaginationQuery } from '../../shared/paginate';
+import { type PaginationQuery, paginate, paginationMeta } from '../../shared/paginate';
 import { prisma } from '../../shared/prisma';
 import { buildWhere } from '../../shared/queryBuilder';
 import { findUserIdsByNameEmail } from '../../shared/search';

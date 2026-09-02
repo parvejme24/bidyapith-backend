@@ -4,7 +4,7 @@ export const pick = <T extends object, const K extends keyof T>(
 ): Pick<T, K> => {
   const result = {} as Pick<T, K>;
   for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(obj, key) && obj[key] !== undefined) {
+    if (Object.hasOwn(obj, key) && obj[key] !== undefined) {
       result[key] = obj[key];
     }
   }

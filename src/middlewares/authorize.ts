@@ -1,5 +1,5 @@
-import type { NextFunction, Request, Response } from 'express';
 import type { Role } from '@prisma/client';
+import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '../shared/ApiError';
 

@@ -3,11 +3,7 @@ export class ApiError extends Error {
   readonly errors: { path: string; message: string }[] | undefined;
   readonly isOperational: boolean;
 
-  constructor(
-    statusCode: number,
-    message: string,
-    errors?: { path: string; message: string }[],
-  ) {
+  constructor(statusCode: number, message: string, errors?: { path: string; message: string }[]) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;

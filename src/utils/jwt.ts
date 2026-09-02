@@ -1,7 +1,7 @@
-import { createHash, randomBytes, randomUUID } from 'crypto';
-import jwt from 'jsonwebtoken';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Role } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
+import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { ApiError } from '../shared/ApiError';
 

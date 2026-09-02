@@ -10,7 +10,7 @@ const isRole = (value: string): value is Role => (Object.values(Role) as string[
 
 export const auth = catchAsync(async (req: Request, _res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  if (!header?.startsWith('Bearer ')) {
     throw new ApiError(StatusCodes.UNAUTHORIZED, 'Access token is required');
   }
 

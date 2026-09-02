@@ -1,4 +1,10 @@
-export const USER_SORT_FIELDS = ['createdAt', 'updatedAt', 'firstName', 'lastName', 'email'] as const;
+export const USER_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'firstName',
+  'lastName',
+  'email',
+] as const;
 
 export const USER_PUBLIC_SELECT = {
   id: true,
@@ -60,4 +66,3 @@ export const INSTRUCTOR_PROFILE_SELECT = {
   joiningDate: true,
   department: { select: { id: true, code: true, name: true } },
 } as const;
-

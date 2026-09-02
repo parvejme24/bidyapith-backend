@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { StatusCodes } from 'http-status-codes';
 import { ApiError } from '../shared/ApiError';
 

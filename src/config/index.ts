@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
@@ -28,10 +28,7 @@ const loadEnvFiles = (): string[] => {
       }
     }
   }
-  const localCandidates = [
-    path.join(process.cwd(), '.env'),
-    path.join(process.cwd(), 'env'),
-  ];
+  const localCandidates = [path.join(process.cwd(), '.env'), path.join(process.cwd(), 'env')];
   for (const filePath of localCandidates) {
     if (tryLoadDotenv(filePath) && !loaded.includes(filePath)) {
       loaded.push(filePath);
@@ -57,8 +54,12 @@ const envSchema = z.object({
   PG_POOL_MAX: z.coerce.number().int().positive().max(50).default(10),
   PG_POOL_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
 
-  JWT_ACCESS_SECRET: z.string().min(32, 'Set JWT_ACCESS_SECRET (≥32 chars) in Render → Environment'),
-  JWT_REFRESH_SECRET: z.string().min(32, 'Set JWT_REFRESH_SECRET (≥32 chars) in Render → Environment'),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, 'Set JWT_ACCESS_SECRET (≥32 chars) in Render → Environment'),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, 'Set JWT_REFRESH_SECRET (≥32 chars) in Render → Environment'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),

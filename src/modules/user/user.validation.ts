@@ -56,13 +56,25 @@ export const UserValidation = {
       .superRefine((value, ctx) => {
         if (value.role === Role.INSTRUCTOR) {
           if (value.departmentId === undefined) {
-            ctx.addIssue({ code: 'custom', message: 'departmentId is required for instructors', path: ['departmentId'] });
+            ctx.addIssue({
+              code: 'custom',
+              message: 'departmentId is required for instructors',
+              path: ['departmentId'],
+            });
           }
           if (value.designation === undefined) {
-            ctx.addIssue({ code: 'custom', message: 'designation is required for instructors', path: ['designation'] });
+            ctx.addIssue({
+              code: 'custom',
+              message: 'designation is required for instructors',
+              path: ['designation'],
+            });
           }
           if (value.joiningDate === undefined) {
-            ctx.addIssue({ code: 'custom', message: 'joiningDate is required for instructors', path: ['joiningDate'] });
+            ctx.addIssue({
+              code: 'custom',
+              message: 'joiningDate is required for instructors',
+              path: ['joiningDate'],
+            });
           }
         }
       }),

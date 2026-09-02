@@ -1,6 +1,6 @@
 import type { AuthProvider, Role, UserStatus } from '@prisma/client';
 import type { z } from 'zod';
-import { AuthValidation } from './auth.validation';
+import type { AuthValidation } from './auth.validation';
 
 export type RequestMeta = {
   ipAddress?: string;

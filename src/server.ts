@@ -1,4 +1,4 @@
-import type { Server } from 'http';
+import type { Server } from 'node:http';
 import { app } from './app';
 import { config } from './config';
 import { startExpireStalePaymentsJob } from './jobs/expireStalePayments';

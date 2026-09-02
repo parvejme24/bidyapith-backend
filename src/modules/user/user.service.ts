@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'node:crypto';
 import {
   AuditAction,
   EnrollmentStatus,
@@ -8,8 +8,8 @@ import {
   UserStatus,
 } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
-import { cloudinary } from '../../config/cloudinary';
 import { config } from '../../config';
+import { cloudinary } from '../../config/cloudinary';
 import { ApiError } from '../../shared/ApiError';
 import { paginate, paginationMeta } from '../../shared/paginate';
 import { prisma } from '../../shared/prisma';
@@ -145,7 +145,10 @@ const deleteAvatar = async (userId: string) => {
 
 const createStaff = async (actorId: string, input: CreateStaffInput) => {
   if (input.role === Role.STUDENT) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Students must self-register through /auth/register');
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Students must self-register through /auth/register',
+    );
   }
 
   const temporaryPassword = generateTemporaryPassword();
@@ -175,7 +178,10 @@ const createStaff = async (actorId: string, input: CreateStaffInput) => {
           input.designation === undefined ||
           input.joiningDate === undefined
         ) {
-          throw new ApiError(StatusCodes.BAD_REQUEST, 'Instructor department, designation and joining date are required');
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'Instructor department, designation and joining date are required',
+          );
         }
 
         const department = await tx.department.findFirst({
@@ -311,10 +317,7 @@ const changeRole = async (actorId: string, targetId: string, nextRole: Role) => 
         where: { role: Role.ADMIN, status: UserStatus.ACTIVE, deletedAt: null },
       });
       if (activeAdmins <= 1) {
-        throw new ApiError(
-          StatusCodes.CONFLICT,
-          'Cannot demote the last remaining active admin.',
-        );
+        throw new ApiError(StatusCodes.CONFLICT, 'Cannot demote the last remaining active admin.');
       }
     }
 

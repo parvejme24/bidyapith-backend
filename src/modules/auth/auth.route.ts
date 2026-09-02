@@ -9,12 +9,7 @@ const router = Router();
 
 router.post('/register', validateRequest(AuthValidation.register), AuthController.register);
 
-router.post(
-  '/login',
-  loginLimiter,
-  validateRequest(AuthValidation.login),
-  AuthController.login,
-);
+router.post('/login', loginLimiter, validateRequest(AuthValidation.login), AuthController.login);
 
 router.post('/google', validateRequest(AuthValidation.google), AuthController.google);
 

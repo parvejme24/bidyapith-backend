@@ -25,7 +25,13 @@ adminRouter.post(
   validateRequest(UserValidation.createStaff),
   UserController.createStaff,
 );
-adminRouter.get('/', auth, authorize(Role.ADMIN), validateRequest(UserValidation.list), UserController.listUsers);
+adminRouter.get(
+  '/',
+  auth,
+  authorize(Role.ADMIN),
+  validateRequest(UserValidation.list),
+  UserController.listUsers,
+);
 adminRouter.get(
   '/:id',
   auth,

@@ -1,10 +1,14 @@
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import { getRedis } from './redis';
 
 export const queryHash = (value: unknown): string =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 16);
 
-export const cached = async <T>(key: string, ttlSeconds: number, fn: () => Promise<T>): Promise<T> => {
+export const cached = async <T>(
+  key: string,
+  ttlSeconds: number,
+  fn: () => Promise<T>,
+): Promise<T> => {
   const redis = getRedis();
   if (redis !== null) {
     try {

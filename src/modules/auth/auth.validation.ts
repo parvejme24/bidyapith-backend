@@ -27,10 +27,7 @@ const passwordSchema = z
 const phoneSchema = z
   .string()
   .trim()
-  .regex(
-    /^(\+8801|01)\d{9}$/,
-    'Phone must be a Bangladeshi number (+8801XXXXXXXXX or 01XXXXXXXXX)',
-  )
+  .regex(/^(\+8801|01)\d{9}$/, 'Phone must be a Bangladeshi number (+8801XXXXXXXXX or 01XXXXXXXXX)')
   .optional();
 
 export const AuthValidation = {

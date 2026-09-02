@@ -1,9 +1,13 @@
 import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { catchAsync } from '../../shared/catchAsync';
 import { ApiError } from '../../shared/ApiError';
+import { catchAsync } from '../../shared/catchAsync';
 import { sendResponse } from '../../shared/sendResponse';
-import { clearRefreshTokenCookie, REFRESH_TOKEN_COOKIE, setRefreshTokenCookie } from './auth.constant';
+import {
+  clearRefreshTokenCookie,
+  REFRESH_TOKEN_COOKIE,
+  setRefreshTokenCookie,
+} from './auth.constant';
 import type { RequestMeta } from './auth.interface';
 import { AuthService } from './auth.service';
 
