@@ -6,6 +6,11 @@ import {
 import { AuthRoutes } from '../modules/auth/auth.route';
 import { CourseRoutes } from '../modules/course/course.route';
 import { DepartmentRoutes } from '../modules/department/department.route';
+import {
+  ExamRoutes,
+  OfferingExamRoutes,
+  StudentExamResultRoutes,
+} from '../modules/exam/exam.route';
 import { InstructorRoutes } from '../modules/instructor/instructor.route';
 import { OfferingRoutes } from '../modules/offering/offering.route';
 import { PrerequisiteRoutes } from '../modules/prerequisite/prerequisite.route';
@@ -20,6 +25,7 @@ router.use('/auth', AuthRoutes);
 router.use('/users', UserSelfRoutes);
 router.use('/admin/users', UserAdminRoutes);
 router.use('/students', StudentAttendanceRoutes);
+router.use('/students', StudentExamResultRoutes);
 router.use('/students', StudentRoutes);
 router.use('/instructors', InstructorRoutes);
 router.use('/departments', DepartmentRoutes);
@@ -28,6 +34,8 @@ router.use('/courses', PrerequisiteRoutes);
 router.use('/courses', CourseRoutes);
 router.use('/semesters', SemesterRoutes);
 router.use('/offerings', OfferingAttendanceRoutes);
+router.use('/offerings', OfferingExamRoutes);
 router.use('/offerings', OfferingRoutes);
+router.use('/exams', ExamRoutes);
 
 export const AppRoutes = router;
