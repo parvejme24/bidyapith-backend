@@ -6,6 +6,7 @@ import {
 import { AuthRoutes } from '../modules/auth/auth.route';
 import { CourseRoutes } from '../modules/course/course.route';
 import { DepartmentRoutes } from '../modules/department/department.route';
+import { EnrollmentRoutes, OfferingRosterRoutes } from '../modules/enrollment/enrollment.route';
 import {
   ExamRoutes,
   OfferingExamRoutes,
@@ -44,9 +45,11 @@ router.use('/semesters', SemesterResultRoutes);
 router.use('/semesters', SemesterRoutes);
 router.use('/offerings', OfferingAttendanceRoutes);
 router.use('/offerings', OfferingExamRoutes);
+router.use('/offerings', OfferingRosterRoutes);
 router.use('/offerings', OfferingGradeRoutes);
 router.use('/offerings', OfferingRoutes);
 router.use('/enrollments', EnrollmentGradeRoutes);
+router.use('/enrollments', EnrollmentRoutes);
 router.use('/exams', ExamRoutes);
 router.use('/invoices', InvoiceRoutes);
 
