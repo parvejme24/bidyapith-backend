@@ -94,6 +94,47 @@ Before submitting, from another terminal:
 bash scripts/verify-deployment.sh http://localhost:5001
 ```
 
+## Deploy on Vercel
+
+The API is a single Express function (`src/app.ts` default export). Local `npm run dev` still uses `src/server.ts` (`listen` + in-process jobs).
+
+1. **Database.** Use Neon’s **pooled** connection for `DATABASE_URL` and the **direct** connection for `DIRECT_URL`. Put the Vercel function in the same region as the Neon project (Project → Settings → Functions).
+2. **Migrate once** against production (from your laptop, with production URLs in `.env`):
+
+```bash
+npx prisma migrate deploy
+npm run db:seed   # optional demo data
+```
+
+3. **Import the GitHub repo** at [vercel.com/new](https://vercel.com/new). Framework: Express. Root: this repository.
+4. **Environment variables** (Production + Preview). Set these *before* the first deploy — boot throws if any required value is missing.
+
+| Variable | Notes |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Neon pooled URL |
+| `DIRECT_URL` | Neon direct URL (migrations) |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | ≥ 32 characters each |
+| `CLIENT_URL` | Frontend origin (CORS + cookies). Refresh cookie is `SameSite=strict`, so the UI must share this site or you will need a different cookie policy. |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Required by config |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Required |
+| `PAYMENT_SUCCESS_URL` / `PAYMENT_CANCEL_URL` | Frontend payment return URLs |
+| `SMTP_*` | Optional; emails are skipped if `SMTP_HOST` is empty |
+| `REDIS_URL` | Optional |
+| `CRON_SECRET` | Vercel injects this for Cron. Copy it from the project if you need to call the job yourself. |
+
+Leave `PG_POOL_MAX` unset on Vercel (the process caps the pool at 1 so isolates do not exhaust Neon).
+
+5. Deploy. Health: `GET https://<project>.vercel.app/health`.
+6. Stripe webhook endpoint: `https://<project>.vercel.app/api/v1/payments/webhook` (raw body, signature header).
+7. Confirm:
+
+```bash
+bash scripts/verify-deployment.sh https://<project>.vercel.app
+```
+
+`setInterval` does not run on Vercel. Stale `INITIATED` payments are cancelled by the Cron job in `vercel.json` (`GET /api/v1/payments/expire-stale`, daily so it works on Hobby). On Pro you can change the schedule to `0 * * * *`.
+
 ## API overview
 
 All routes under `/api/v1`. Full table: [docs/API.md](docs/API.md). Import [docs/postman-collection.json](docs/postman-collection.json) for bodies, saved examples, and the Failure cases folder.

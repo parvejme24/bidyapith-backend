@@ -37,6 +37,7 @@ router.get(
   validateRequest(PaymentValidation.list),
   PaymentController.listAll,
 );
+router.get('/expire-stale', PaymentController.expireStale);
 router.post(
   '/:id/refund',
   auth,

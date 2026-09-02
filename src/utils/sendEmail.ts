@@ -17,7 +17,20 @@ type SendEmailInput = {
   data: Record<string, string>;
 };
 
-const templatesDir = path.join(__dirname, '..', 'templates');
+const resolveTemplatesDir = (): string => {
+  const candidates = [
+    path.join(__dirname, '..', 'templates'),
+    path.join(process.cwd(), 'src', 'templates'),
+    path.join(process.cwd(), 'dist', 'templates'),
+  ];
+  const found = candidates.find((dir) => fs.existsSync(path.join(dir, 'welcome.html')));
+  if (found === undefined) {
+    throw new Error(`Email templates not found. Looked in: ${candidates.join(', ')}`);
+  }
+  return found;
+};
+
+const templatesDir = resolveTemplatesDir();
 
 const templateCache: Record<EmailTemplate, string> = {
   welcome: fs.readFileSync(path.join(templatesDir, 'welcome.html'), 'utf8'),
@@ -30,6 +43,7 @@ const templateCache: Record<EmailTemplate, string> = {
 const SMTP_VERIFY_TIMEOUT_MS = 8_000;
 
 let transporter: Transporter | null = null;
+let initializing: Promise<'ok' | 'skipped' | 'failed'> | null = null;
 
 const interpolate = (template: string, data: Record<string, string>): string =>
   template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => data[key] ?? '');
@@ -55,37 +69,53 @@ const createSmtpTransport = (): Transporter =>
   });
 
 export const initMailer = async (): Promise<'ok' | 'skipped' | 'failed'> => {
-  try {
-    if (config.SMTP_HOST.length > 0) {
-      transporter = createSmtpTransport();
+  if (transporter !== null) {
+    return 'ok';
+  }
+  if (initializing !== null) {
+    return initializing;
+  }
+
+  initializing = (async (): Promise<'ok' | 'skipped' | 'failed'> => {
+    try {
+      if (config.SMTP_HOST.length > 0) {
+        transporter = createSmtpTransport();
+        await verifyWithTimeout(transporter);
+        return 'ok';
+      }
+
+      if (config.NODE_ENV !== 'development') {
+        return 'skipped';
+      }
+
+      const account = await nodemailer.createTestAccount();
+      transporter = nodemailer.createTransport({
+        host: account.smtp.host,
+        port: account.smtp.port,
+        secure: account.smtp.secure,
+        auth: {
+          user: account.user,
+          pass: account.pass,
+        },
+      });
       await verifyWithTimeout(transporter);
       return 'ok';
+    } catch (error) {
+      console.error('> Nodemailer setup failed', error);
+      transporter = null;
+      return 'failed';
+    } finally {
+      initializing = null;
     }
+  })();
 
-    if (config.NODE_ENV !== 'development') {
-      return 'skipped';
-    }
-
-    const account = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: account.smtp.host,
-      port: account.smtp.port,
-      secure: account.smtp.secure,
-      auth: {
-        user: account.user,
-        pass: account.pass,
-      },
-    });
-    await verifyWithTimeout(transporter);
-    return 'ok';
-  } catch (error) {
-    console.error('> Nodemailer setup failed', error);
-    transporter = null;
-    return 'failed';
-  }
+  return initializing;
 };
 
 export const sendEmail = async ({ to, subject, template, data }: SendEmailInput): Promise<void> => {
+  if (transporter === null) {
+    await initMailer();
+  }
   if (transporter === null) {
     console.error(`[email] SMTP is not ready. Skipped sending "${subject}" to ${to}`);
     if (config.NODE_ENV === 'development') {

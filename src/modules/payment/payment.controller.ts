@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import { config } from '../../config';
+import { expireStalePayments } from '../../jobs/expireStalePayments';
 import { ApiError } from '../../shared/ApiError';
 import { catchAsync } from '../../shared/catchAsync';
 import { sendResponse } from '../../shared/sendResponse';
@@ -113,6 +115,21 @@ const listAll = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const expireStale = catchAsync(async (req: Request, res: Response) => {
+  const authorized =
+    config.CRON_SECRET.length > 0 && req.headers.authorization === `Bearer ${config.CRON_SECRET}`;
+  if (!authorized) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Unauthorized');
+  }
+  const count = await expireStalePayments();
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Stale payments expired',
+    data: { cancelled: count },
+  });
+});
+
 const refund = catchAsync(async (req: Request, res: Response) => {
   const data = await PaymentService.refund(requireUserId(req), String(req.params['id']), req.body);
   sendResponse(res, {
@@ -131,4 +148,5 @@ export const PaymentController = {
   getById,
   listAll,
   refund,
+  expireStale,
 };

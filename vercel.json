@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "src/app.ts": {
+      "maxDuration": 30,
+      "includeFiles": "src/templates/**"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/payments/expire-stale",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

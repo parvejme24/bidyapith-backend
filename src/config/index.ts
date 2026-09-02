@@ -34,6 +34,8 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM: z.string().optional().default('Bidyapith <noreply@bidyapith.edu>'),
 
+  CRON_SECRET: z.string().optional().default(''),
+
   PAYMENT_GATEWAY: z.enum(['STRIPE', 'SSLCOMMERZ']).default('STRIPE'),
   STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
   STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),

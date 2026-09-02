@@ -18,9 +18,13 @@ const poolSettings = (() => {
   const parsedMax = maxFromUrl === null ? Number.NaN : Number.parseInt(maxFromUrl, 10);
   const parsedTimeoutSec = timeoutFromUrl === null ? Number.NaN : Number.parseInt(timeoutFromUrl, 10);
 
+  const resolvedMax =
+    Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : config.PG_POOL_MAX;
+  const max = process.env['VERCEL'] === '1' ? Math.min(resolvedMax, 1) : resolvedMax;
+
   return {
     connectionString: url.toString().replace(/([?&])sslmode=require\b/, '$1sslmode=verify-full'),
-    max: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : config.PG_POOL_MAX,
+    max,
     connectionTimeoutMillis:
       Number.isFinite(parsedTimeoutSec) && parsedTimeoutSec > 0
         ? parsedTimeoutSec * 1000
@@ -45,7 +49,5 @@ export const prisma =
     log: config.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
   });
 
-if (process.env['NODE_ENV'] !== 'production') {
-  globalForPrisma.prisma = prisma;
-  globalForPrisma.pool = pool;
-}
+globalForPrisma.prisma = prisma;
+globalForPrisma.pool = pool;

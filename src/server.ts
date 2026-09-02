@@ -45,7 +45,10 @@ const start = async (): Promise<void> => {
   const server: Server = app.listen(config.PORT, HOST, () => {
     printStartupBanner(mailStatus);
   });
-  startExpireStalePaymentsJob();
+  // Vercel is serverless — the cron in vercel.json hits GET /api/v1/payments/expire-stale.
+  if (process.env['VERCEL'] !== '1') {
+    startExpireStalePaymentsJob();
+  }
 
   const shutdown = async (signal: string): Promise<void> => {
     log(`${signal} received. Closing server.`);
@@ -69,4 +72,6 @@ const start = async (): Promise<void> => {
   });
 };
 
-void start();
+if (process.env['VERCEL'] !== '1') {
+  void start();
+}

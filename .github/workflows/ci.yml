@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      # prisma.config.ts calls env('DATABASE_URL') at load time; generate does not connect.
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/bidyapith
     steps:
       - name: Checkout
