@@ -3,17 +3,45 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-const loadEnvFiles = (): void => {
-  const candidates = ['/etc/secrets/.env', path.join(process.cwd(), '.env')];
-  for (const filePath of candidates) {
-    if (fs.existsSync(filePath)) {
-      dotenv.config({ path: filePath, quiet: true });
+const SECRET_DIR = '/etc/secrets';
+
+const tryLoadDotenv = (filePath: string): boolean => {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    return false;
+  }
+  const result = dotenv.config({ path: filePath, quiet: true });
+  if (result.error !== undefined) {
+    console.error(`> dotenv failed to parse ${filePath}: ${result.error.message}`);
+    return false;
+  }
+  console.log(`> loaded env file ${filePath}`);
+  return true;
+};
+
+const loadEnvFiles = (): string[] => {
+  const loaded: string[] = [];
+  if (fs.existsSync(SECRET_DIR) && fs.statSync(SECRET_DIR).isDirectory()) {
+    for (const name of fs.readdirSync(SECRET_DIR)) {
+      const filePath = path.join(SECRET_DIR, name);
+      if (tryLoadDotenv(filePath)) {
+        loaded.push(filePath);
+      }
+    }
+  }
+  const localCandidates = [
+    path.join(process.cwd(), '.env'),
+    path.join(process.cwd(), 'env'),
+  ];
+  for (const filePath of localCandidates) {
+    if (tryLoadDotenv(filePath) && !loaded.includes(filePath)) {
+      loaded.push(filePath);
     }
   }
   dotenv.config({ quiet: true });
+  return loaded;
 };
 
-loadEnvFiles();
+const loadedEnvFiles = loadEnvFiles();
 
 const optionalString = z.preprocess(
   (value) => (value === undefined || value === null ? '' : value),
@@ -108,8 +136,20 @@ if (!parsed.success) {
     .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
     .join('\n');
   if (!isVercelBuild) {
+    const secretNames = fs.existsSync(SECRET_DIR)
+      ? fs.readdirSync(SECRET_DIR).join(', ') || '(empty directory)'
+      : '(no /etc/secrets directory)';
     throw new Error(
-      `Invalid environment variables:\n${details}\n\nRender does not use your local .env file. Add these keys in the service → Environment, or upload .env as a Secret File named ".env" (available at /etc/secrets/.env), then Manual Deploy.`,
+      [
+        'Invalid environment variables:',
+        details,
+        '',
+        `Loaded env files: ${loadedEnvFiles.length > 0 ? loadedEnvFiles.join(', ') : 'none'}`,
+        `/etc/secrets files: ${secretNames}`,
+        `DATABASE_URL in process.env: ${process.env['DATABASE_URL'] === undefined ? 'no' : 'yes'}`,
+        '',
+        'Render does not use your laptop .env. In the service → Environment, click "Add from .env", paste your local .env, then Save, rebuild, and deploy.',
+      ].join('\n'),
     );
   }
   console.warn(`> Env incomplete during Vercel build; using placeholders.\n${details}`);

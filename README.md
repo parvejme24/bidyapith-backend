@@ -137,7 +137,9 @@ Do **not** set `PORT` yourself. Render injects it; the app already reads `config
 
 Render never reads your laptop `.env`. If those keys are missing, `node dist/server.js` throws `expected string, received undefined`.
 
-**Fastest:** Environment → **Secret Files** → add a file named `.env` → paste your local `.env` contents (use `CLOUDINARY_*`, not `CLAUDINARY_*`) → **Save** → **Manual Deploy**.
+**Fastest (official Render UI):** Environment → **Add from .env** → paste your local `.env` → **Save, rebuild, and deploy**.
+
+Do not use Secret Files for this. Secret Files are extra files on disk; they are not the same as Environment Variables. `DATABASE_URL` must appear under **Environment Variables**.
 
 **Or** add these keys one by one under **Environment** (copy values from local `.env`):
 
