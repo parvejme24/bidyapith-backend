@@ -12,6 +12,7 @@ import {
   StudentExamResultRoutes,
 } from '../modules/exam/exam.route';
 import { InstructorRoutes } from '../modules/instructor/instructor.route';
+import { InvoiceRoutes } from '../modules/invoice/invoice.route';
 import { OfferingRoutes } from '../modules/offering/offering.route';
 import { PrerequisiteRoutes } from '../modules/prerequisite/prerequisite.route';
 import { ProgramRoutes } from '../modules/program/program.route';
@@ -47,5 +48,6 @@ router.use('/offerings', OfferingGradeRoutes);
 router.use('/offerings', OfferingRoutes);
 router.use('/enrollments', EnrollmentGradeRoutes);
 router.use('/exams', ExamRoutes);
+router.use('/invoices', InvoiceRoutes);
 
 export const AppRoutes = router;
