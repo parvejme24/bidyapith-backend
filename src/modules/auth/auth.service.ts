@@ -3,17 +3,16 @@ import {
   AuthProvider,
   Prisma,
   Role,
-  TokenPurpose,
   UserStatus,
   type User,
 } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
 import { StatusCodes } from 'http-status-codes';
-import bcrypt from 'bcryptjs';
 import { config } from '../../config';
 import { ApiError } from '../../shared/ApiError';
 import { prisma } from '../../shared/prisma';
 import { createAuditLog } from '../../utils/auditLog';
+import { generateStudentId } from '../../utils/generateId';
 import {
   generateOpaqueToken,
   hashToken,
@@ -21,13 +20,12 @@ import {
   refreshTokenExpiryDate,
   signAccessToken,
 } from '../../utils/jwt';
-import { comparePassword, hashPassword } from '../../utils/password';
+import { comparePassword, hashPassword, hashPasswordSync } from '../../utils/password';
 import { sendEmail } from '../../utils/sendEmail';
 import {
   AUTH_MESSAGES,
   EMAIL_VERIFICATION_TTL_MS,
   PASSWORD_RESET_TTL_MS,
-  STUDENT_ID_SEQUENCE_PAD,
 } from './auth.constant';
 import type {
   AuthSession,
@@ -42,7 +40,7 @@ import type {
 
 const googleClient = new OAuth2Client();
 
-const dummyPasswordHash = bcrypt.hashSync('__timing_safe_dummy__', config.BCRYPT_SALT_ROUNDS);
+const dummyPasswordHash = hashPasswordSync('__timing_safe_dummy__');
 
 const toPublicUser = (user: User): PublicUser => ({
   id: user.id,
@@ -54,6 +52,7 @@ const toPublicUser = (user: User): PublicUser => ({
   status: user.status,
   provider: user.provider,
   emailVerified: user.emailVerified,
+  avatarUrl: user.avatarUrl,
   lastLoginAt: user.lastLoginAt,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
@@ -71,38 +70,6 @@ const isUniqueConstraint = (error: unknown, field: string): boolean => {
     return target.some((item) => String(item).includes(field));
   }
   return true;
-};
-
-const generateStudentId = async (
-  tx: Prisma.TransactionClient,
-  programId: string,
-  programCode: string,
-  admissionYear: number,
-): Promise<string> => {
-  const lockKey = `${programId}:${admissionYear}`;
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
-
-  const prefix = `${admissionYear}-${programCode.toUpperCase()}-`;
-  const latest = await tx.studentProfile.findFirst({
-    where: {
-      programId,
-      admissionYear,
-      studentId: { startsWith: prefix },
-    },
-    orderBy: { studentId: 'desc' },
-    select: { studentId: true },
-  });
-
-  let next = 1;
-  if (latest?.studentId !== null && latest?.studentId !== undefined) {
-    const sequencePart = latest.studentId.split('-')[2];
-    const parsed = sequencePart === undefined ? Number.NaN : Number.parseInt(sequencePart, 10);
-    if (Number.isFinite(parsed)) {
-      next = parsed + 1;
-    }
-  }
-
-  return `${prefix}${String(next).padStart(STUDENT_ID_SEQUENCE_PAD, '0')}`;
 };
 
 const createSession = async (
@@ -161,7 +128,9 @@ const register = async (input: RegisterInput): Promise<{ user: PublicUser; stude
 
   try {
     created = await prisma.$transaction(async (tx) => {
-      const program = await tx.program.findUnique({ where: { id: input.programId } });
+      const program = await tx.program.findFirst({
+        where: { id: input.programId, deletedAt: null },
+      });
       if (program === null) {
         throw new ApiError(StatusCodes.NOT_FOUND, AUTH_MESSAGES.programNotFound);
       }
@@ -187,7 +156,8 @@ const register = async (input: RegisterInput): Promise<{ user: PublicUser; stude
           userId: user.id,
           programId: program.id,
           studentId,
-          admissionYear,
+          batch: String(admissionYear),
+          admissionDate: new Date(),
         },
       });
 
@@ -195,17 +165,17 @@ const register = async (input: RegisterInput): Promise<{ user: PublicUser; stude
         data: {
           userId: user.id,
           tokenHash: hashToken(verificationToken),
-          purpose: TokenPurpose.EMAIL_VERIFICATION,
+          purpose: 'EMAIL_VERIFY',
           expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS),
         },
       });
 
       await createAuditLog(tx, {
-        userId: user.id,
-        action: AuditAction.REGISTER,
+        actorId: user.id,
+        action: AuditAction.CREATE,
         entity: 'User',
         entityId: user.id,
-        metadata: { studentId, programId: program.id },
+        after: { studentId, programId: program.id },
       });
 
       return { user, studentId };
@@ -260,11 +230,11 @@ const login = async (input: LoginInput, meta: RequestMeta): Promise<AuthSession>
     });
 
     await createAuditLog(tx, {
-      userId: user.id,
+      actorId: user.id,
       action: AuditAction.LOGIN,
       entity: 'User',
       entityId: user.id,
-      metadata: { provider: AuthProvider.CREDENTIALS },
+      after: { provider: AuthProvider.CREDENTIALS },
       ...(meta.ipAddress !== undefined ? { ipAddress: meta.ipAddress } : {}),
       ...(meta.userAgent !== undefined ? { userAgent: meta.userAgent } : {}),
     });
@@ -344,10 +314,11 @@ const googleLogin = async (input: GoogleInput, meta: RequestMeta): Promise<AuthS
       });
 
       await createAuditLog(tx, {
-        userId: existing.id,
-        action: AuditAction.GOOGLE_LOGIN,
+        actorId: existing.id,
+        action: AuditAction.LOGIN,
         entity: 'User',
         entityId: existing.id,
+        after: { provider: AuthProvider.GOOGLE },
         ...(meta.ipAddress !== undefined ? { ipAddress: meta.ipAddress } : {}),
         ...(meta.userAgent !== undefined ? { userAgent: meta.userAgent } : {}),
       });
@@ -359,48 +330,7 @@ const googleLogin = async (input: GoogleInput, meta: RequestMeta): Promise<AuthS
     return { accessToken, refreshToken, user: toPublicUser(updated) };
   }
 
-  try {
-    const { accessToken, refreshToken, created } = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          firstName,
-          lastName,
-          email,
-          password: null,
-          role: Role.STUDENT,
-          status: UserStatus.ACTIVE,
-          provider: AuthProvider.GOOGLE,
-          googleId,
-          emailVerified: true,
-          lastLoginAt: now,
-        },
-      });
-
-      await tx.studentProfile.create({
-        data: { userId: user.id },
-      });
-
-      await createAuditLog(tx, {
-        userId: user.id,
-        action: AuditAction.GOOGLE_LOGIN,
-        entity: 'User',
-        entityId: user.id,
-        metadata: { created: true },
-        ...(meta.ipAddress !== undefined ? { ipAddress: meta.ipAddress } : {}),
-        ...(meta.userAgent !== undefined ? { userAgent: meta.userAgent } : {}),
-      });
-
-      const session = await createSession(tx, user);
-      return { ...session, created: user };
-    });
-
-    return { accessToken, refreshToken, user: toPublicUser(created) };
-  } catch (error) {
-    if (isUniqueConstraint(error, 'email') || isUniqueConstraint(error, 'googleId')) {
-      throw new ApiError(StatusCodes.CONFLICT, AUTH_MESSAGES.duplicateEmail);
-    }
-    throw error;
-  }
+  throw new ApiError(StatusCodes.BAD_REQUEST, AUTH_MESSAGES.googleSignupRequiresRegister);
 };
 
 const refreshToken = async (rawToken: string): Promise<AuthSession> => {
@@ -418,11 +348,11 @@ const refreshToken = async (rawToken: string): Promise<AuthSession> => {
     await prisma.$transaction(async (tx) => {
       await revokeFamily(tx, stored.family);
       await createAuditLog(tx, {
-        userId: stored.userId,
-        action: AuditAction.TOKEN_REUSE_DETECTED,
+        actorId: stored.userId,
+        action: AuditAction.UPDATE,
         entity: 'RefreshToken',
         entityId: stored.id,
-        metadata: { family: stored.family },
+        after: { event: 'TOKEN_REUSE_DETECTED', family: stored.family },
       });
     });
     throw new ApiError(StatusCodes.UNAUTHORIZED, AUTH_MESSAGES.reuseDetected);
@@ -451,10 +381,11 @@ const refreshToken = async (rawToken: string): Promise<AuthSession> => {
       }
 
       await createAuditLog(tx, {
-        userId: stored.userId,
-        action: AuditAction.TOKEN_REFRESH,
+        actorId: stored.userId,
+        action: AuditAction.UPDATE,
         entity: 'RefreshToken',
         entityId: stored.id,
+        after: { event: 'TOKEN_REFRESH' },
       });
 
       const session = await createSession(tx, updatedUser, stored.family);
@@ -481,10 +412,11 @@ const logout = async (rawToken: string, userId: string): Promise<null> => {
         data: { revokedAt: new Date() },
       });
       await createAuditLog(tx, {
-        userId,
-        action: AuditAction.LOGOUT,
+        actorId: userId,
+        action: AuditAction.UPDATE,
         entity: 'RefreshToken',
         entityId: stored.id,
+        after: { event: 'LOGOUT' },
       });
     });
   }
@@ -525,10 +457,11 @@ const changePassword = async (
     await revokeAllUserSessions(tx, userId);
 
     await createAuditLog(tx, {
-      userId,
-      action: AuditAction.PASSWORD_CHANGE,
+      actorId: userId,
+      action: AuditAction.UPDATE,
       entity: 'User',
       entityId: userId,
+      after: { event: 'PASSWORD_CHANGE' },
     });
 
     const session = await createSession(tx, updatedUser);
@@ -553,15 +486,16 @@ const forgotPassword = async (email: string): Promise<null> => {
       data: {
         userId: user.id,
         tokenHash: hashToken(resetToken),
-        purpose: TokenPurpose.PASSWORD_RESET,
+        purpose: 'PASSWORD_RESET',
         expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
       },
     });
     await createAuditLog(tx, {
-      userId: user.id,
-      action: AuditAction.PASSWORD_RESET_REQUEST,
+      actorId: user.id,
+      action: AuditAction.UPDATE,
       entity: 'User',
       entityId: user.id,
+      after: { event: 'PASSWORD_RESET_REQUEST' },
     });
   });
 
@@ -586,7 +520,7 @@ const resetPassword = async (input: ResetPasswordInput): Promise<null> => {
     include: { user: true },
   });
 
-  if (stored === null || stored.purpose !== TokenPurpose.PASSWORD_RESET) {
+  if (stored === null || stored.purpose !== 'PASSWORD_RESET') {
     throw new ApiError(StatusCodes.BAD_REQUEST, AUTH_MESSAGES.invalidReset);
   }
   if (stored.usedAt !== null) {
@@ -614,10 +548,11 @@ const resetPassword = async (input: ResetPasswordInput): Promise<null> => {
     });
     await revokeAllUserSessions(tx, stored.userId);
     await createAuditLog(tx, {
-      userId: stored.userId,
-      action: AuditAction.PASSWORD_RESET,
+      actorId: stored.userId,
+      action: AuditAction.UPDATE,
       entity: 'User',
       entityId: stored.userId,
+      after: { event: 'PASSWORD_RESET' },
     });
   });
 
@@ -629,7 +564,7 @@ const verifyEmail = async (token: string): Promise<PublicUser> => {
     where: { tokenHash: hashToken(token) },
   });
 
-  if (stored === null || stored.purpose !== TokenPurpose.EMAIL_VERIFICATION) {
+  if (stored === null || stored.purpose !== 'EMAIL_VERIFY') {
     throw new ApiError(StatusCodes.BAD_REQUEST, AUTH_MESSAGES.invalidVerify);
   }
   if (stored.usedAt !== null) {
@@ -653,10 +588,11 @@ const verifyEmail = async (token: string): Promise<PublicUser> => {
       },
     });
     await createAuditLog(tx, {
-      userId: stored.userId,
-      action: AuditAction.EMAIL_VERIFIED,
+      actorId: stored.userId,
+      action: AuditAction.UPDATE,
       entity: 'User',
       entityId: stored.userId,
+      after: { event: 'EMAIL_VERIFIED' },
     });
     return updated;
   });

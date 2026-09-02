@@ -20,13 +20,14 @@ export const AUTH_MESSAGES = {
   usedVerify: 'Verification token has already been used',
   googleUnverified: 'Google account email is not verified',
   googleNotConfigured: 'Google sign-in is not configured',
+  googleSignupRequiresRegister:
+    'Google sign-in is only available for existing accounts. Register with email first and provide a program.',
   currentPasswordWrong: 'Current password is incorrect',
   googlePasswordChange: 'This account uses Google sign-in and has no password to change',
 } as const;
 
 export const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
-export const STUDENT_ID_SEQUENCE_PAD = 4;
 
 const refreshCookieOptions = (): CookieOptions => ({
   httpOnly: true,

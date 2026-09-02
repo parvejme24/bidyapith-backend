@@ -23,6 +23,7 @@ export type PublicUser = {
   status: UserStatus;
   provider: AuthProvider;
   emailVerified: boolean;
+  avatarUrl: string | null;
   lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
