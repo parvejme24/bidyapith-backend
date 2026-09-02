@@ -2,6 +2,15 @@ import type { NextFunction, Request, Response } from 'express';
 import type { ZodType } from 'zod';
 import { catchAsync } from '../shared/catchAsync';
 
+const replaceRequestField = (req: Request, field: 'query' | 'params', value: unknown): void => {
+  Object.defineProperty(req, field, {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value,
+  });
+};
+
 export const validateRequest = (schema: ZodType) =>
   catchAsync(async (req: Request, _res: Response, next: NextFunction) => {
     const parsed = await schema.parseAsync({
@@ -17,10 +26,10 @@ export const validateRequest = (schema: ZodType) =>
         req.body = value.body;
       }
       if (value.query !== undefined) {
-        req.query = value.query as Request['query'];
+        replaceRequestField(req, 'query', value.query);
       }
       if (value.params !== undefined) {
-        req.params = value.params as Request['params'];
+        replaceRequestField(req, 'params', value.params);
       }
     }
 
