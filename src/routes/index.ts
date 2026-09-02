@@ -5,6 +5,7 @@ import { DepartmentRoutes } from '../modules/department/department.route';
 import { InstructorRoutes } from '../modules/instructor/instructor.route';
 import { PrerequisiteRoutes } from '../modules/prerequisite/prerequisite.route';
 import { ProgramRoutes } from '../modules/program/program.route';
+import { SemesterRoutes } from '../modules/semester/semester.route';
 import { StudentRoutes } from '../modules/student/student.route';
 import { UserAdminRoutes, UserSelfRoutes } from '../modules/user/user.route';
 
@@ -19,5 +20,6 @@ router.use('/departments', DepartmentRoutes);
 router.use('/programs', ProgramRoutes);
 router.use('/courses', PrerequisiteRoutes);
 router.use('/courses', CourseRoutes);
+router.use('/semesters', SemesterRoutes);
 
 export const AppRoutes = router;
