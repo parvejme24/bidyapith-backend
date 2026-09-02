@@ -7,9 +7,9 @@ declare global {
         userId: string;
         email: string;
         role: Role;
+        studentProfileId?: string;
+        instructorProfileId?: string;
       };
     }
   }
 }
-
-export {};

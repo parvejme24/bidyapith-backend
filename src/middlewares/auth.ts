@@ -1,13 +1,12 @@
-import type { NextFunction, Request, Response } from 'express';
 import { Role, UserStatus } from '@prisma/client';
+import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { prisma } from '../shared/prisma';
 import { ApiError } from '../shared/ApiError';
 import { catchAsync } from '../shared/catchAsync';
+import { prisma } from '../shared/prisma';
 import { verifyAccessToken } from '../utils/jwt';
 
-const isRole = (value: string): value is Role =>
-  (Object.values(Role) as string[]).includes(value);
+const isRole = (value: string): value is Role => (Object.values(Role) as string[]).includes(value);
 
 export const auth = catchAsync(async (req: Request, _res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
@@ -34,6 +33,8 @@ export const auth = catchAsync(async (req: Request, _res: Response, next: NextFu
       status: true,
       deletedAt: true,
       passwordChangedAt: true,
+      studentProfile: { select: { id: true, deletedAt: true } },
+      instructorProfile: { select: { id: true, deletedAt: true } },
     },
   });
 
@@ -49,16 +50,24 @@ export const auth = catchAsync(async (req: Request, _res: Response, next: NextFu
     user.passwordChangedAt !== null &&
     payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)
   ) {
-    throw new ApiError(
-      StatusCodes.UNAUTHORIZED,
-      'Password was changed. Please log in again.',
-    );
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Password was changed. Please log in again.');
   }
+
+  const studentProfileId =
+    user.studentProfile !== null && user.studentProfile.deletedAt === null
+      ? user.studentProfile.id
+      : undefined;
+  const instructorProfileId =
+    user.instructorProfile !== null && user.instructorProfile.deletedAt === null
+      ? user.instructorProfile.id
+      : undefined;
 
   req.user = {
     userId: user.id,
     email: user.email,
     role: user.role,
+    ...(studentProfileId !== undefined ? { studentProfileId } : {}),
+    ...(instructorProfileId !== undefined ? { instructorProfileId } : {}),
   };
 
   next();
