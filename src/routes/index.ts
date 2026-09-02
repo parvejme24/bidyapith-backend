@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { AuthRoutes } from '../modules/auth/auth.route';
+import { CourseRoutes } from '../modules/course/course.route';
+import { DepartmentRoutes } from '../modules/department/department.route';
 import { InstructorRoutes } from '../modules/instructor/instructor.route';
+import { PrerequisiteRoutes } from '../modules/prerequisite/prerequisite.route';
+import { ProgramRoutes } from '../modules/program/program.route';
 import { StudentRoutes } from '../modules/student/student.route';
 import { UserAdminRoutes, UserSelfRoutes } from '../modules/user/user.route';
 
@@ -11,5 +15,9 @@ router.use('/users', UserSelfRoutes);
 router.use('/admin/users', UserAdminRoutes);
 router.use('/students', StudentRoutes);
 router.use('/instructors', InstructorRoutes);
+router.use('/departments', DepartmentRoutes);
+router.use('/programs', ProgramRoutes);
+router.use('/courses', PrerequisiteRoutes);
+router.use('/courses', CourseRoutes);
 
 export const AppRoutes = router;
