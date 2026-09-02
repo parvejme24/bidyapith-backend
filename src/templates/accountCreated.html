@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Bidyapith account</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:12px;padding:32px;">
+            <tr>
+              <td>
+                <h1 style="margin:0 0 16px;font-size:22px;color:#111827;">Your Bidyapith account is ready</h1>
+                <p style="margin:0 0 16px;line-height:1.6;">Hi {{firstName}},</p>
+                <p style="margin:0 0 16px;line-height:1.6;">
+                  An administrator created a {{role}} account for you. Sign in with the email and temporary password below, then change your password immediately.
+                </p>
+                <p style="margin:0 0 8px;line-height:1.6;"><strong>Email:</strong> {{email}}</p>
+                <p style="margin:0 0 24px;line-height:1.6;"><strong>Temporary password:</strong> {{temporaryPassword}}</p>
+                <p style="margin:0 0 8px;font-size:13px;color:#6b7280;line-height:1.5;">
+                  Do not share this password. If you did not expect this email, contact the university administration.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

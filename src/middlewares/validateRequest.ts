@@ -11,10 +11,16 @@ export const validateRequest = (schema: ZodType) =>
       cookies: req.cookies,
     });
 
-    if (typeof parsed === 'object' && parsed !== null && 'body' in parsed) {
-      const body = (parsed as { body: unknown }).body;
-      if (body !== undefined) {
-        req.body = body;
+    if (typeof parsed === 'object' && parsed !== null) {
+      const value = parsed as { body?: unknown; query?: unknown; params?: unknown };
+      if (value.body !== undefined) {
+        req.body = value.body;
+      }
+      if (value.query !== undefined) {
+        req.query = value.query as Request['query'];
+      }
+      if (value.params !== undefined) {
+        req.params = value.params as Request['params'];
       }
     }
 

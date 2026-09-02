@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { config } from '../config';
 
 export const hashPassword = async (plain: string): Promise<string> =>
@@ -6,3 +6,6 @@ export const hashPassword = async (plain: string): Promise<string> =>
 
 export const comparePassword = async (plain: string, hash: string): Promise<boolean> =>
   bcrypt.compare(plain, hash);
+
+export const hashPasswordSync = (plain: string): string =>
+  bcrypt.hashSync(plain, config.BCRYPT_SALT_ROUNDS);

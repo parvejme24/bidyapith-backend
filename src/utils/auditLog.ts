@@ -3,9 +3,10 @@ import type { AuditAction, Prisma } from '@prisma/client';
 export type AuditLogInput = {
   action: AuditAction;
   entity: string;
-  userId?: string;
+  actorId?: string;
   entityId?: string;
-  metadata?: Prisma.InputJsonValue;
+  before?: Prisma.InputJsonValue;
+  after?: Prisma.InputJsonValue;
   ipAddress?: string;
   userAgent?: string;
 };
@@ -18,9 +19,10 @@ export const createAuditLog = async (
     data: {
       action: input.action,
       entity: input.entity,
-      ...(input.userId !== undefined ? { userId: input.userId } : {}),
+      ...(input.actorId !== undefined ? { actorId: input.actorId } : {}),
       ...(input.entityId !== undefined ? { entityId: input.entityId } : {}),
-      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      ...(input.before !== undefined ? { before: input.before } : {}),
+      ...(input.after !== undefined ? { after: input.after } : {}),
       ...(input.ipAddress !== undefined ? { ipAddress: input.ipAddress } : {}),
       ...(input.userAgent !== undefined ? { userAgent: input.userAgent } : {}),
     },

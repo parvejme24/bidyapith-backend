@@ -7,6 +7,10 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(5001),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DIRECT_URL: z.string().optional().default(''),
+  REDIS_URL: z.string().optional().default(''),
+  PG_POOL_MAX: z.coerce.number().int().positive().max(50).default(10),
+  PG_POOL_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
 
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
@@ -16,6 +20,10 @@ const envSchema = z.object({
 
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
+
+  CLOUDINARY_CLOUD_NAME: z.string(),
+  CLOUDINARY_API_KEY: z.string(),
+  CLOUDINARY_API_SECRET: z.string(),
 
   SMTP_HOST: z.string().optional().default(''),
   SMTP_PORT: z.preprocess(

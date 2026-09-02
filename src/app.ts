@@ -5,6 +5,7 @@ import compression from 'compression';
 import helmet from 'helmet';
 import { StatusCodes } from 'http-status-codes';
 import { config } from './config';
+import { requestLogger } from './middlewares/requestLogger';
 import { AppRoutes } from './routes';
 import { ApiError } from './shared/ApiError';
 import { sendResponse } from './shared/sendResponse';
@@ -29,6 +30,7 @@ app.use(
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(requestLogger);
 
 app.get('/', (_req: Request, res: Response) => {
   sendResponse(res, {

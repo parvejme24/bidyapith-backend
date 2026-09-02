@@ -2,6 +2,7 @@ import type { Server } from 'http';
 import { app } from './app';
 import { config } from './config';
 import { prisma } from './shared/prisma';
+import { disconnectRedis } from './shared/redis';
 import { initMailer } from './utils/sendEmail';
 
 const HOST = '0.0.0.0';
@@ -48,6 +49,7 @@ const start = async (): Promise<void> => {
     log(`${signal} received. Closing server.`);
     server.close(async () => {
       await prisma.$disconnect();
+      await disconnectRedis();
       process.exit(0);
     });
   };
