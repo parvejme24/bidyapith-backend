@@ -1,0 +1,40 @@
+import dotenv from 'dotenv';
+import { z } from 'zod';
+
+dotenv.config({ quiet: true });
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().positive().default(5001),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
+  JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
+
+  GOOGLE_CLIENT_ID: z.string().optional().default(''),
+  CLIENT_URL: z.string().url().default('http://localhost:3000'),
+
+  SMTP_HOST: z.string().optional().default(''),
+  SMTP_PORT: z.preprocess(
+    (value) => (value === '' || value === undefined ? 587 : value),
+    z.coerce.number().int().positive(),
+  ),
+  SMTP_USER: z.string().optional().default(''),
+  SMTP_PASS: z.string().optional().default(''),
+  SMTP_FROM: z.string().optional().default('Bidyapith <noreply@bidyapith.edu>'),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  const details = parsed.error.issues
+    .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+    .join('\n');
+  throw new Error(`Invalid environment variables:\n${details}`);
+}
+
+export const config = parsed.data;
+export type Config = typeof config;
