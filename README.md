@@ -10,6 +10,7 @@ University Management System API for institutions that need enrollment, grading,
 | Health | [https://bidyapith-backend.onrender.com/health](https://bidyapith-backend.onrender.com/health) |
 | Stripe webhook | `https://bidyapith-backend.onrender.com/api/v1/payments/webhook` |
 | Postman | [docs/postman-collection.json](docs/postman-collection.json) |
+| SQA API examples | [docs/API-EXAMPLES.md](docs/API-EXAMPLES.md) |
 | Demo video | `_TODO: recording URL_` |
 
 Health lives at `GET {origin}/health`. All other routes are under `{origin}/api/v1`.

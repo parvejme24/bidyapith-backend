@@ -7,6 +7,8 @@ Live origin: [https://bidyapith-backend.onrender.com](https://bidyapith-backend.
 
 117 HTTP endpoints. Audit logs and notifications are written by other modules; they have no REST surface.
 
+Request and response JSON for every endpoint: [API-EXAMPLES.md](API-EXAMPLES.md) (SQA test reference).
+
 ## How to test everything
 
 Use any one of these. They hit the same routes.
