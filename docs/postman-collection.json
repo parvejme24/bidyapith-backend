@@ -1,17 +1,25 @@
 {
   "info": {
     "name": "Bidyapith API",
-    "description": "University Management System. Run Auth → Login as admin/instructor/student first; test scripts store tokens.\n\nAfter `npm run db:seed`, paste offering IDs from stdout into collection variables (fullOfferingId, prereqOfferingId, conflictOfferingId, oneSeatOfferingId, openOfferingId).\n\nHealth is on the origin (`{{origin}}/health`), not under `/api/v1`.",
+    "description": "University Management System. Live API: https://bidyapith-backend.onrender.com\n\nStart with Auth → Login as admin. That request uses collection variables adminEmail / adminPassword and saves adminToken + accessToken. Admin folders use {{adminToken}}.\n\nInstructor and student folders still need Login as instructor / Login as student first.\n\nAfter `npm run db:seed`, paste offering IDs from stdout into collection variables if you test those failure cases.\n\nHealth is on the origin (`{{origin}}/health`), not under `/api/v1`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "origin",
-      "value": "http://localhost:5001"
+      "value": "https://bidyapith-backend.onrender.com"
     },
     {
       "key": "baseUrl",
-      "value": "http://localhost:5001/api/v1"
+      "value": "https://bidyapith-backend.onrender.com/api/v1"
+    },
+    {
+      "key": "adminEmail",
+      "value": "devparvejme@gmail.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "12345678"
     },
     {
       "key": "accessToken",
@@ -162,7 +170,7 @@
             "url": "{{baseUrl}}/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@bidyapith.edu\",\n  \"password\": \"Admin1234\"\n}"
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
             }
           },
           "response": [
@@ -179,7 +187,7 @@
                 "url": "{{baseUrl}}/auth/login",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@bidyapith.edu\",\n  \"password\": \"Admin1234\"\n}"
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
                 }
               },
               "status": "OK",
@@ -613,7 +621,7 @@
             "url": "{{baseUrl}}/auth/forgot-password",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@bidyapith.edu\"\n}"
+              "raw": "{\n  \"email\": \"{{adminEmail}}\"\n}"
             }
           },
           "response": [
@@ -630,7 +638,7 @@
                 "url": "{{baseUrl}}/auth/forgot-password",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@bidyapith.edu\"\n}"
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\"\n}"
                 }
               },
               "status": "OK",

@@ -6,7 +6,9 @@ University Management System API for institutions that need enrollment, grading,
 
 | | |
 |---|---|
-| API | `_TODO: production origin, e.g. https://api.bidyapith.edu_` |
+| API | [https://bidyapith-backend.onrender.com](https://bidyapith-backend.onrender.com) |
+| Health | [https://bidyapith-backend.onrender.com/health](https://bidyapith-backend.onrender.com/health) |
+| Stripe webhook | `https://bidyapith-backend.onrender.com/api/v1/payments/webhook` |
 | Postman | [docs/postman-collection.json](docs/postman-collection.json) |
 | Demo video | `_TODO: recording URL_` |
 
@@ -18,7 +20,8 @@ After `npm run db:seed`. Override the admin password with `SEED_ADMIN_PASSWORD`.
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | `admin@bidyapith.edu` | `Admin1234` |
+| Admin (Postman / live) | `devparvejme@gmail.com` | `12345678` |
+| Admin (demo seed) | `admin@bidyapith.edu` | `Admin1234` |
 | Student | `student01@bidyapith.edu` | `Student1234` |
 | Instructor | `instructor01@bidyapith.edu` | `Teach1234` |
 
@@ -176,11 +179,11 @@ Do **not** set `PORT`. After saving, deploy again. Saving env vars does not rest
 **Manual Deploy** → **Deploy latest commit**. Wait until the log shows `All is OK` and health checks pass.
 
 ```bash
-bash scripts/verify-deployment.sh https://<your-service>.onrender.com
+bash scripts/verify-deployment.sh https://bidyapith-backend.onrender.com
 ```
 
-- Health: `GET https://<your-service>.onrender.com/health`
-- Stripe webhook: `https://<your-service>.onrender.com/api/v1/payments/webhook`
+- Health: `GET https://bidyapith-backend.onrender.com/health`
+- Stripe webhook: `https://bidyapith-backend.onrender.com/api/v1/payments/webhook`
 - Stale payments: the web process runs `setInterval` while it is awake. On a sleeping Free instance, add a Render **Cron Job** (`GET /api/v1/payments/expire-stale` with `Authorization: Bearer $CRON_SECRET`) every hour.
 
 ### 5. After the URL exists

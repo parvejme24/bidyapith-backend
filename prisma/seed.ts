@@ -37,6 +37,8 @@ const prisma = new PrismaClient({
 
 const ADMIN_EMAIL = 'admin@bidyapith.edu';
 const ADMIN_PASSWORD = process.env['SEED_ADMIN_PASSWORD'] ?? 'Admin1234';
+const TEST_ADMIN_EMAIL = process.env['SEED_TEST_ADMIN_EMAIL'] ?? 'devparvejme@gmail.com';
+const TEST_ADMIN_PASSWORD = process.env['SEED_TEST_ADMIN_PASSWORD'] ?? '12345678';
 const STUDENT_PASSWORD = 'Student1234';
 const INSTRUCTOR_PASSWORD = 'Teach1234';
 const BCRYPT_ROUNDS = 12;
@@ -504,6 +506,27 @@ async function main(): Promise<void> {
       lastName: 'Admin',
       email: ADMIN_EMAIL,
       password: adminHash,
+      role: Role.ADMIN,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+    },
+  });
+
+  const testAdminHash = await bcrypt.hash(TEST_ADMIN_PASSWORD, BCRYPT_ROUNDS);
+  await prisma.user.upsert({
+    where: { email: TEST_ADMIN_EMAIL },
+    update: {
+      password: testAdminHash,
+      role: Role.ADMIN,
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+      deletedAt: null,
+    },
+    create: {
+      firstName: 'Parvej',
+      lastName: 'Admin',
+      email: TEST_ADMIN_EMAIL,
+      password: testAdminHash,
       role: Role.ADMIN,
       status: UserStatus.ACTIVE,
       emailVerified: true,
@@ -1356,6 +1379,7 @@ async function main(): Promise<void> {
   console.log(`  semesterResults  ${counts.semesterResults}`);
   console.log('\nAdmin');
   console.log(`  ${ADMIN_EMAIL}  /  ${ADMIN_PASSWORD}`);
+  console.log(`  ${TEST_ADMIN_EMAIL}  /  ${TEST_ADMIN_PASSWORD}  (Postman)`);
   console.log('\nInstructors  (password Teach1234)');
   console.log(`  ${requireInstructor(0).email}   Algorithms, CSE-3301`);
   console.log('\nDemo students  (password Student1234)');
