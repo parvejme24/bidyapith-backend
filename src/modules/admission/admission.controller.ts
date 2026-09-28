@@ -5,7 +5,8 @@ import { sendResponse } from '../../shared/sendResponse';
 import { AdmissionService } from './admission.service';
 
 const getAll = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdmissionService.getAll(req.query as any);
+  const query = req.query as { status?: string; type?: string; search?: string };
+  const result = await AdmissionService.getAll(query);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -15,8 +16,8 @@ const getAll = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMyApplications = catchAsync(async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const result = await AdmissionService.getMyApplications(user?.email);
+  const email = req.user?.email;
+  const result = await AdmissionService.getMyApplications(email);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

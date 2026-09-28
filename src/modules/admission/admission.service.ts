@@ -79,7 +79,11 @@ let ADMISSION_STORE: IAdmissionApplication[] = [
 ];
 
 export const AdmissionService = {
-  async getAll(query?: { status?: string; type?: string; search?: string }): Promise<IAdmissionApplication[]> {
+  async getAll(query?: {
+    status?: string;
+    type?: string;
+    search?: string;
+  }): Promise<IAdmissionApplication[]> {
     let result = [...ADMISSION_STORE];
 
     if (query?.status && query.status !== 'ALL') {
@@ -88,7 +92,9 @@ export const AdmissionService = {
 
     if (query?.type && query.type !== 'ALL') {
       if (query.type === 'COURSE_REGISTRATION') {
-        result = result.filter((a) => a.applicationType === 'COURSE_REGISTRATION' || Boolean(a.courseCode));
+        result = result.filter(
+          (a) => a.applicationType === 'COURSE_REGISTRATION' || Boolean(a.courseCode),
+        );
       } else if (query.type === 'DEGREE_ADMISSION') {
         result = result.filter((a) => a.applicationType !== 'COURSE_REGISTRATION' && !a.courseCode);
       }
@@ -100,7 +106,7 @@ export const AdmissionService = {
         (a) =>
           a.studentName.toLowerCase().includes(q) ||
           a.email.toLowerCase().includes(q) ||
-          (a.courseCode && a.courseCode.toLowerCase().includes(q)) ||
+          a.courseCode?.toLowerCase().includes(q) ||
           a.programTitle.toLowerCase().includes(q),
       );
     }
@@ -131,7 +137,9 @@ export const AdmissionService = {
       programId: payload.programId ?? payload.courseCode ?? 'BSC-CSE',
       programTitle: payload.programTitle ?? 'Academic Program',
       degreeType: payload.degreeType ?? 'B.Sc.',
-      applicationType: payload.applicationType ?? (payload.courseCode ? 'COURSE_REGISTRATION' : 'DEGREE_ADMISSION'),
+      applicationType:
+        payload.applicationType ??
+        (payload.courseCode ? 'COURSE_REGISTRATION' : 'DEGREE_ADMISSION'),
       courseCode: payload.courseCode ?? undefined,
       courseTitle: payload.courseTitle ?? undefined,
       courseCredits: payload.courseCredits ?? 3,
