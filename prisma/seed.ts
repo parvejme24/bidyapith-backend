@@ -35,13 +35,11 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });
 
-const ADMIN_EMAIL = 'admin@bidyapith.edu';
 const ADMIN_PASSWORD = process.env['SEED_ADMIN_PASSWORD'] ?? 'Admin1234';
-const TEST_ADMIN_EMAIL = process.env['SEED_TEST_ADMIN_EMAIL'] ?? 'devparvejme@gmail.com';
 const TEST_ADMIN_PASSWORD = process.env['SEED_TEST_ADMIN_PASSWORD'] ?? '12345678';
 const STUDENT_PASSWORD = 'Student1234';
 const INSTRUCTOR_PASSWORD = 'Teach1234';
-const BCRYPT_ROUNDS = 12;
+const BCRYPT_ROUNDS = 10;
 
 const addDays = (base: Date, days: number): Date => {
   const next = new Date(base.getTime());
@@ -49,1366 +47,632 @@ const addDays = (base: Date, days: number): Date => {
   return next;
 };
 
-const academicTerm = (date: Date): { term: SemesterTerm; year: number } => {
-  const month = date.getMonth();
-  const year = date.getFullYear();
-  if (month < 4) {
-    return { term: SemesterTerm.SPRING, year };
-  }
-  if (month < 8) {
-    return { term: SemesterTerm.SUMMER, year };
-  }
-  return { term: SemesterTerm.FALL, year };
-};
-
-const displayName = (term: SemesterTerm, year: number): string =>
-  `${term.charAt(0)}${term.slice(1).toLowerCase()} ${year}`;
-
-const bumpTerm = (slot: {
-  term: SemesterTerm;
-  year: number;
-}): { term: SemesterTerm; year: number } => {
-  if (slot.term === SemesterTerm.SPRING) {
-    return { term: SemesterTerm.SUMMER, year: slot.year };
-  }
-  if (slot.term === SemesterTerm.SUMMER) {
-    return { term: SemesterTerm.FALL, year: slot.year };
-  }
-  return { term: SemesterTerm.SPRING, year: slot.year + 1 };
-};
-
-const uniqueSlots = (
-  candidates: { term: SemesterTerm; year: number }[],
-): { term: SemesterTerm; year: number }[] => {
-  const used = new Set<string>();
-  const result: { term: SemesterTerm; year: number }[] = [];
-  for (let slot of candidates) {
-    let key = `${slot.term}-${slot.year}`;
-    while (used.has(key)) {
-      slot = bumpTerm(slot);
-      key = `${slot.term}-${slot.year}`;
-    }
-    used.add(key);
-    result.push(slot);
-  }
-  return result;
-};
-
-const semesterDates = (kind: 'completed' | 'registration' | 'upcoming', now: Date) => {
-  if (kind === 'registration') {
-    const registrationStart = addDays(now, -7);
-    const registrationEnd = addDays(now, 21);
-    const classStartDate = addDays(now, 22);
-    return {
-      registrationStart,
-      registrationEnd,
-      dropDeadline: addDays(now, 35),
-      classStartDate,
-      classEndDate: addDays(now, 120),
-      resultPublishedAt: null as Date | null,
-    };
-  }
-  if (kind === 'upcoming') {
-    const registrationStart = addDays(now, 60);
-    const registrationEnd = addDays(now, 90);
-    const classStartDate = addDays(now, 95);
-    return {
-      registrationStart,
-      registrationEnd,
-      dropDeadline: addDays(now, 110),
-      classStartDate,
-      classEndDate: addDays(now, 180),
-      resultPublishedAt: null as Date | null,
-    };
-  }
-  const registrationStart = addDays(now, -200);
-  const registrationEnd = addDays(now, -160);
-  const classStartDate = addDays(now, -155);
-  const classEndDate = addDays(now, -20);
-  return {
-    registrationStart,
-    registrationEnd,
-    dropDeadline: addDays(now, -140),
-    classStartDate,
-    classEndDate,
-    resultPublishedAt: addDays(now, -10),
-  };
-};
-
-const FIRST_NAMES = [
-  'Aisha',
-  'Rahim',
-  'Nadia',
-  'Karim',
-  'Farah',
-  'Imran',
-  'Laila',
-  'Tanvir',
-  'Sadia',
-  'Hasan',
-  'Maliha',
-  'Omar',
-  'Yasmin',
-  'Rafi',
-  'Nusrat',
-  'Adnan',
-  'Shaila',
-  'Jamal',
-  'Priya',
-  'Sajid',
-  'Hina',
-  'Arif',
-  'Mehnaz',
-  'Faisal',
-  'Rina',
-  'Nabil',
-  'Tania',
-  'Zahid',
-  'Anika',
-  'Shuvo',
-] as const;
-
-const COURSES: {
-  code: string;
-  title: string;
-  credits: string;
-  type: CourseType;
-  level: number;
-  dept: 'CSE' | 'MAT';
-}[] = [
-  {
-    code: 'CSE-1101',
-    title: 'Introduction to Programming',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 1,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-1102',
-    title: 'Programming Laboratory',
-    credits: '1.5',
-    type: CourseType.LAB,
-    level: 1,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-1201',
-    title: 'Discrete Mathematics',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 1,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-2201',
-    title: 'Data Structures',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 2,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-2202',
-    title: 'Object-Oriented Programming',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 2,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-2303',
-    title: 'Database Systems',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 2,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-3201',
-    title: 'Software Engineering',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 3,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-3301',
-    title: 'Algorithms',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 3,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-3303',
-    title: 'Operating Systems',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 3,
-    dept: 'CSE',
-  },
-  {
-    code: 'CSE-4401',
-    title: 'Compiler Design',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 4,
-    dept: 'CSE',
-  },
-  {
-    code: 'MAT-1101',
-    title: 'Calculus I',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 1,
-    dept: 'MAT',
-  },
-  {
-    code: 'MAT-1201',
-    title: 'Calculus II',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 1,
-    dept: 'MAT',
-  },
-  {
-    code: 'MAT-2101',
-    title: 'Linear Algebra',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 2,
-    dept: 'MAT',
-  },
-  {
-    code: 'MAT-2201',
-    title: 'Probability and Statistics',
-    credits: '3.0',
-    type: CourseType.CORE,
-    level: 2,
-    dept: 'MAT',
-  },
+const UNSPLASH_AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1534751516642-a171edd273c6?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1548142813-c348350df52b?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=400&auto=format&fit=crop&q=80',
 ];
 
-const PREREQS: [string, string][] = [
-  ['CSE-2201', 'CSE-1101'],
-  ['CSE-2202', 'CSE-1101'],
-  ['CSE-3301', 'CSE-2201'],
-  ['CSE-3303', 'CSE-2201'],
-  ['CSE-4401', 'CSE-3301'],
-  ['MAT-1201', 'MAT-1101'],
-  ['MAT-2101', 'MAT-1101'],
+const getAvatar = (idx: number) => UNSPLASH_AVATARS[idx % UNSPLASH_AVATARS.length]!;
+
+const BANGLA_FIRST_NAMES = [
+  'Rafiul', 'Ayesha', 'Tanvir', 'Sabina', 'Mahmud', 'Nusrat', 'Kamal', 'Farhana',
+  'Shahriar', 'Sadia', 'Rezaul', 'Mitali', 'Nafisa', 'Sharmin', 'Imran', 'Tariq',
+  'Farid', 'Tasnim', 'Sabbir', 'Anisur', 'Sumaiya', 'Rakib', 'Nazmul', 'Mehedi',
+  'Tahsin', 'Samira', 'Zubair', 'Lamia', 'Fahim', 'Nabila', 'Ahsan', 'Tamanna',
+  'Jubayer', 'Ishrat', 'Asif', 'Rubaba', 'Saad', 'Munira', 'Arman', 'Raisa',
+  'Shakib', 'Anika', 'Rifat', 'Nafis', 'Suhana', 'Moin', 'Afia', 'Zayan',
+  'Rumana', 'Tanzeem', 'Shazia', 'Adnan', 'Zareen', 'Faiaz', 'Bushra', 'Salman',
+  'Fariha', 'Habib', 'Sania', 'Rayhan', 'Jannat', 'Mahir', 'Mahira', 'Siam',
+  'Suraiya', 'Nahian', 'Tasfia', 'Kazi', 'Mahnur', 'Zawad', 'Samia', 'Ibtisam',
+  'Shadman', 'Nawrin', 'Maruf', 'Lubna', 'Tamjid', 'Sadaf', 'Tanjim', 'Afreen',
+  'Wasif', 'Nuzhat', 'Farhan', 'Naveed', 'Zubeda', 'Munim', 'Abrar', 'Ateeq',
+  'Faheem', 'Samiya', 'Sharaf', 'Nayeed', 'Subah', 'Rownak', 'Sifat', 'Naim'
 ];
 
-const gradePoint = (letter: LetterGrade): Prisma.Decimal | null => {
-  const table: Partial<Record<LetterGrade, string>> = {
-    A_PLUS: '4.00',
-    A: '3.75',
-    A_MINUS: '3.50',
-    B_PLUS: '3.25',
-    B: '3.00',
-    B_MINUS: '2.75',
-    C_PLUS: '2.50',
-    C: '2.25',
-    D: '2.00',
-    F: '0.00',
-  };
-  const value = table[letter];
-  return value === undefined ? null : new Prisma.Decimal(value);
-};
+const BANGLA_LAST_NAMES = [
+  'Karim', 'Rahman', 'Ahmed', 'Yeasmin', 'Hasan', 'Jahan', 'Hossain', 'Islam',
+  'Kabir', 'Noor', 'Karim', 'Saha', 'Haque', 'Akter', 'Chowdhury', 'Hasan',
+  'Uddin', 'Khan', 'Mia', 'Reza', 'Binte Karim', 'Huda', 'Alam', 'Mahmood',
+  'Talukder', 'Sikder', 'Bhuiyan', 'Molla', 'Mirza', 'Siddiqui', 'Majumder', 'Dewan'
+];
+
+const DEPARTMENTS_DATA = [
+  { code: 'CSE', name: 'Computer Science and Engineering', email: 'cse@bidyapith.edu' },
+  { code: 'EEE', name: 'Electrical and Electronic Engineering', email: 'eee@bidyapith.edu' },
+  { code: 'CIV', name: 'Civil and Environmental Engineering', email: 'civ@bidyapith.edu' },
+  { code: 'BBA', name: 'Business Administration', email: 'bba@bidyapith.edu' },
+  { code: 'ECO', name: 'Economics', email: 'eco@bidyapith.edu' },
+  { code: 'PHY', name: 'Physics', email: 'phy@bidyapith.edu' },
+  { code: 'MAT', name: 'Mathematics', email: 'mat@bidyapith.edu' },
+  { code: 'ENG', name: 'English and Modern Languages', email: 'eng@bidyapith.edu' },
+  { code: 'LAW', name: 'Law and Justice', email: 'law@bidyapith.edu' },
+  { code: 'PHA', name: 'Pharmacy and Health Sciences', email: 'pha@bidyapith.edu' },
+];
+
+const PROGRAMS_DATA = [
+  { code: 'BSC-CSE', name: 'B.Sc. in Computer Science and Engineering', dept: 'CSE', degree: DegreeType.BSC, credits: 140, years: 4, fee: '4500.00', regFee: '5000.00' },
+  { code: 'MSC-CSE', name: 'M.Sc. in Computer Science and Engineering', dept: 'CSE', degree: DegreeType.MSC, credits: 36, years: 2, fee: '6000.00', regFee: '8000.00' },
+  { code: 'BSC-EEE', name: 'B.Sc. in Electrical and Electronic Engineering', dept: 'EEE', degree: DegreeType.BSC, credits: 144, years: 4, fee: '4200.00', regFee: '5000.00' },
+  { code: 'BSC-CIV', name: 'B.Sc. in Civil Engineering', dept: 'CIV', degree: DegreeType.BSC, credits: 142, years: 4, fee: '4000.00', regFee: '5000.00' },
+  { code: 'BBA-GEN', name: 'Bachelor of Business Administration', dept: 'BBA', degree: DegreeType.BBA, credits: 128, years: 4, fee: '3800.00', regFee: '4000.00' },
+  { code: 'MBA-EXE', name: 'Executive Master of Business Administration', dept: 'BBA', degree: DegreeType.MBA, credits: 48, years: 2, fee: '5500.00', regFee: '6000.00' },
+  { code: 'BSC-MAT', name: 'B.Sc. in Mathematics', dept: 'MAT', degree: DegreeType.BSC, credits: 128, years: 4, fee: '3500.00', regFee: '4000.00' },
+  { code: 'BSC-PHY', name: 'B.Sc. in Physics', dept: 'PHY', degree: DegreeType.BSC, credits: 130, years: 4, fee: '3500.00', regFee: '4000.00' },
+  { code: 'BA-ENG', name: 'B.A. (Hons) in English Literature', dept: 'ENG', degree: DegreeType.BA, credits: 124, years: 4, fee: '3200.00', regFee: '3500.00' },
+  { code: 'LLB-HON', name: 'LL.B. (Honours)', dept: 'LAW', degree: DegreeType.BA, credits: 136, years: 4, fee: '4000.00', regFee: '4500.00' },
+  { code: 'BPH-PRO', name: 'Bachelor of Pharmacy (Professional)', dept: 'PHA', degree: DegreeType.BSC, credits: 160, years: 5, fee: '4800.00', regFee: '5500.00' },
+  { code: 'BSS-ECO', name: 'B.S.S. in Economics', dept: 'ECO', degree: DegreeType.BBA, credits: 126, years: 4, fee: '3600.00', regFee: '4000.00' },
+];
+
+const COURSES_DATA = [
+  { code: 'CSE-1101', title: 'Introduction to Programming', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'CSE' },
+  { code: 'CSE-1102', title: 'Programming Laboratory', credits: '1.5', type: CourseType.LAB, level: 1, dept: 'CSE' },
+  { code: 'CSE-1201', title: 'Discrete Mathematics', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'CSE' },
+  { code: 'CSE-2201', title: 'Data Structures and Algorithms', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'CSE' },
+  { code: 'CSE-2202', title: 'Object-Oriented Programming', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'CSE' },
+  { code: 'CSE-2303', title: 'Database Systems', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'CSE' },
+  { code: 'CSE-3201', title: 'Software Engineering', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'CSE' },
+  { code: 'CSE-3301', title: 'Design & Analysis of Algorithms', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'CSE' },
+  { code: 'CSE-3303', title: 'Operating Systems', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'CSE' },
+  { code: 'CSE-4108', title: 'Artificial Intelligence & Machine Learning', credits: '3.0', type: CourseType.ELECTIVE, level: 4, dept: 'CSE' },
+  { code: 'CSE-4401', title: 'Compiler Design', credits: '3.0', type: CourseType.CORE, level: 4, dept: 'CSE' },
+  
+  { code: 'EEE-1101', title: 'Basic Electrical Engineering', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'EEE' },
+  { code: 'EEE-2104', title: 'Circuit Analysis II', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'EEE' },
+  { code: 'EEE-3301', title: 'Power System Engineering', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'EEE' },
+  { code: 'EEE-4205', title: 'VLSI Design & Embedded Systems', credits: '3.0', type: CourseType.ELECTIVE, level: 4, dept: 'EEE' },
+
+  { code: 'CIV-1101', title: 'Engineering Mechanics', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'CIV' },
+  { code: 'CIV-2107', title: 'Structural Mechanics', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'CIV' },
+  { code: 'CIV-3204', title: 'Geotechnical Engineering', credits: '4.0', type: CourseType.CORE, level: 3, dept: 'CIV' },
+
+  { code: 'BBA-1101', title: 'Principles of Management', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'BBA' },
+  { code: 'BBA-2103', title: 'Financial Accounting', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'BBA' },
+  { code: 'BBA-3104', title: 'Corporate Finance', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'BBA' },
+  { code: 'BBA-3208', title: 'Consumer Behaviour & Marketing', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'BBA' },
+
+  { code: 'MAT-1101', title: 'Differential & Integral Calculus', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'MAT' },
+  { code: 'MAT-1201', title: 'Coordinate Geometry & Vectors', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'MAT' },
+  { code: 'MAT-2101', title: 'Linear Algebra', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'MAT' },
+  { code: 'MAT-2201', title: 'Probability and Statistics', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'MAT' },
+  { code: 'MAT-3204', title: 'Numerical Analysis', credits: '3.0', type: CourseType.CORE, level: 3, dept: 'MAT' },
+
+  { code: 'PHY-1101', title: 'Physics I (Mechanics & Waves)', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'PHY' },
+  { code: 'PHY-2201', title: 'Quantum Mechanics I', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'PHY' },
+  { code: 'PHY-3106', title: 'Computational Physics', credits: '3.0', type: CourseType.ELECTIVE, level: 3, dept: 'PHY' },
+
+  { code: 'ENG-1101', title: 'English Reading and Composition', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'ENG' },
+  { code: 'ENG-2105', title: 'Postcolonial Literature', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'ENG' },
+
+  { code: 'LAW-1101', title: 'Jurisprudence & Legal Theory', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'LAW' },
+  { code: 'LAW-2201', title: 'Constitutional Law of Bangladesh', credits: '4.0', type: CourseType.CORE, level: 2, dept: 'LAW' },
+
+  { code: 'PHA-1101', title: 'Inorganic Pharmacy', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'PHA' },
+  { code: 'PHA-3105', title: 'Pharmacology and Therapeutics', credits: '4.0', type: CourseType.CORE, level: 3, dept: 'PHA' },
+
+  { code: 'ECO-1101', title: 'Principles of Microeconomics', credits: '3.0', type: CourseType.CORE, level: 1, dept: 'ECO' },
+  { code: 'ECO-2102', title: 'Intermediate Macroeconomics', credits: '3.0', type: CourseType.CORE, level: 2, dept: 'ECO' },
+  { code: 'ECO-4103', title: 'Applied Econometrics', credits: '4.0', type: CourseType.CORE, level: 4, dept: 'ECO' },
+];
+
+const INSTRUCTORS_DATA = [
+  { email: 'ayesha.rahman@bidyapith.edu', first: 'Ayesha', last: 'Rahman', dept: 'CSE', des: Designation.PROFESSOR, spec: 'Distributed Systems & Cloud Computing', phone: '+8801711223344' },
+  { email: 'tanvir.ahmed@bidyapith.edu', first: 'Tanvir', last: 'Ahmed', dept: 'CSE', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Database Systems & Big Data', phone: '+8801711223345' },
+  { email: 'nafisa.haque@bidyapith.edu', first: 'Nafisa', last: 'Haque', dept: 'CSE', des: Designation.ASSISTANT_PROFESSOR, spec: 'Machine Learning & NLP', phone: '+8801711223346' },
+  { email: 'sabbir.rahman@bidyapith.edu', first: 'Sabbir', last: 'Rahman', dept: 'CSE', des: Designation.ASSISTANT_PROFESSOR, spec: 'Operating Systems & Networks', phone: '+8801711223347' },
+  { email: 'mahmud.hasan@bidyapith.edu', first: 'Mahmud', last: 'Hasan', dept: 'CSE', des: Designation.PROFESSOR, spec: 'Algorithms & Theoretical CS', phone: '+8801711223348' },
+  { email: 'sabina.yasmin@bidyapith.edu', first: 'Sabina', last: 'Yasmin', dept: 'CSE', des: Designation.LECTURER, spec: 'Software Engineering & Web Technologies', phone: '+8801711223349' },
+
+  { email: 'kamal.hossain@bidyapith.edu', first: 'Kamal', last: 'Hossain', dept: 'EEE', des: Designation.PROFESSOR, spec: 'Power Systems & Smart Grids', phone: '+8801811223350' },
+  { email: 'rubel.mia@bidyapith.edu', first: 'Rubel', last: 'Mia', dept: 'EEE', des: Designation.ASSOCIATE_PROFESSOR, spec: 'VLSI Design & Semiconductors', phone: '+8801811223351' },
+  { email: 'farhana.tasnim@bidyapith.edu', first: 'Farhana', last: 'Tasnim', dept: 'EEE', des: Designation.ASSISTANT_PROFESSOR, spec: 'Renewable Energy & IoT', phone: '+8801811223352' },
+
+  { email: 'nusrat.jahan@bidyapith.edu', first: 'Nusrat', last: 'Jahan', dept: 'CIV', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Structural & Earthquake Engineering', phone: '+8801911223353' },
+  { email: 'imran.chowdhury@bidyapith.edu', first: 'Imran', last: 'Chowdhury', dept: 'CIV', des: Designation.ASSISTANT_PROFESSOR, spec: 'Geotechnical & Foundation Engineering', phone: '+8801911223354' },
+
+  { email: 'shahriar.kabir@bidyapith.edu', first: 'Shahriar', last: 'Kabir', dept: 'BBA', des: Designation.PROFESSOR, spec: 'Strategic Management & Business Policy', phone: '+8801711223355' },
+  { email: 'sharmin.akter@bidyapith.edu', first: 'Sharmin', last: 'Akter', dept: 'BBA', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Corporate Finance & Investment Banking', phone: '+8801711223356' },
+  { email: 'rakib.hasan@bidyapith.edu', first: 'Rakib', last: 'Hasan', dept: 'BBA', des: Designation.ASSISTANT_PROFESSOR, spec: 'Digital Marketing & Consumer Insights', phone: '+8801711223357' },
+
+  { email: 'selim.reza@bidyapith.edu', first: 'Selim', last: 'Reza', dept: 'MAT', des: Designation.PROFESSOR, spec: 'Linear Algebra & Dynamical Systems', phone: '+8801611223358' },
+  { email: 'sumaiya.karim@bidyapith.edu', first: 'Sumaiya', last: 'Karim', dept: 'MAT', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Numerical Methods & Optimization', phone: '+8801611223359' },
+  { email: 'tariq.aziz@bidyapith.edu', first: 'Tariq', last: 'Aziz', dept: 'MAT', des: Designation.LECTURER, spec: 'Probability, Statistics & Stochastic Models', phone: '+8801611223360' },
+
+  { email: 'mahfuz.alam@bidyapith.edu', first: 'Mahfuz', last: 'Alam', dept: 'PHY', des: Designation.PROFESSOR, spec: 'Quantum Optics & Condensed Matter', phone: '+8801711223361' },
+  { email: 'anisur.rahman@bidyapith.edu', first: 'Anisur', last: 'Rahman', dept: 'PHY', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Computational Physics & Nanomaterials', phone: '+8801711223362' },
+
+  { email: 'sadia.noor@bidyapith.edu', first: 'Sadia', last: 'Noor', dept: 'ENG', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Postcolonial Literature & Literary Translation', phone: '+8801811223363' },
+  { email: 'tasneem.fatima@bidyapith.edu', first: 'Tasneem', last: 'Fatima', dept: 'ENG', des: Designation.ASSISTANT_PROFESSOR, spec: 'Applied Linguistics & ELT', phone: '+8801811223364' },
+
+  { email: 'rezaul.karim@bidyapith.edu', first: 'Rezaul', last: 'Karim', dept: 'LAW', des: Designation.PROFESSOR, spec: 'Constitutional & Administrative Law', phone: '+8801911223365' },
+  { email: 'nazmul.huda@bidyapith.edu', first: 'Nazmul', last: 'Huda', dept: 'LAW', des: Designation.ASSISTANT_PROFESSOR, spec: 'Corporate Law, Securities & Cyber Law', phone: '+8801911223366' },
+
+  { email: 'mitali.saha@bidyapith.edu', first: 'Mitali', last: 'Saha', dept: 'PHA', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Clinical Pharmacology & Therapeutics', phone: '+8801511223367' },
+  { email: 'farhana.islam@bidyapith.edu', first: 'Farhana', last: 'Islam', dept: 'ECO', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Development Economics & Micro-econometrics', phone: '+8801511223368' },
+];
+
+const ADMINS_DATA = [
+  { email: 'admin@bidyapith.edu', first: 'System', last: 'Administrator', phone: '+8801700000001', pass: ADMIN_PASSWORD },
+  { email: 'devparvejme@gmail.com', first: 'Parvej', last: 'Admin', phone: '+8801700000002', pass: TEST_ADMIN_PASSWORD },
+  { email: 'registrar@bidyapith.edu', first: 'Sabina', last: 'Yeasmin', phone: '+8801700000003', pass: ADMIN_PASSWORD },
+  { email: 'controller@bidyapith.edu', first: 'Kamal', last: 'Hossain', phone: '+8801700000004', pass: ADMIN_PASSWORD },
+  { email: 'admissions@bidyapith.edu', first: 'Jahangir', last: 'Alam', phone: '+8801700000005', pass: ADMIN_PASSWORD },
+  { email: 'finance@bidyapith.edu', first: 'Farzana', last: 'Rahman', phone: '+8801700000006', pass: ADMIN_PASSWORD },
+];
 
 async function main(): Promise<void> {
-  const now = new Date();
-  const [completedSlot, retakeSlot, registrationSlot, upcomingSlot] = uniqueSlots([
-    academicTerm(addDays(now, -540)),
-    academicTerm(addDays(now, -240)),
-    academicTerm(now),
-    academicTerm(addDays(now, 180)),
+  console.log('🚀 Starting Bidyapith Comprehensive Database Seeding...');
+
+  console.log('🔑 Pre-hashing passwords...');
+  const [adminHash, testAdminHash, studentHash, instructorHash] = await Promise.all([
+    bcrypt.hash(ADMIN_PASSWORD, BCRYPT_ROUNDS),
+    bcrypt.hash(TEST_ADMIN_PASSWORD, BCRYPT_ROUNDS),
+    bcrypt.hash(STUDENT_PASSWORD, BCRYPT_ROUNDS),
+    bcrypt.hash(INSTRUCTOR_PASSWORD, BCRYPT_ROUNDS),
   ]);
-  if (
-    completedSlot === undefined ||
-    retakeSlot === undefined ||
-    registrationSlot === undefined ||
-    upcomingSlot === undefined
-  ) {
-    throw new Error('Failed to allocate unique semester slots');
+
+  // 1. Seed Departments
+  console.log('🏛️ Seeding Departments...');
+  const deptMap = new Map<string, string>();
+  for (const d of DEPARTMENTS_DATA) {
+    const dept = await prisma.department.upsert({
+      where: { code: d.code },
+      update: { name: d.name, contactEmail: d.email, deletedAt: null },
+      create: { code: d.code, name: d.name, contactEmail: d.email },
+    });
+    deptMap.set(d.code, dept.id);
   }
 
-  const adminHash = await bcrypt.hash(ADMIN_PASSWORD, BCRYPT_ROUNDS);
-  const studentHash = await bcrypt.hash(STUDENT_PASSWORD, BCRYPT_ROUNDS);
-  const instructorHash = await bcrypt.hash(INSTRUCTOR_PASSWORD, BCRYPT_ROUNDS);
-
-  const cse = await prisma.department.upsert({
-    where: { code: 'CSE' },
-    update: {
-      name: 'Computer Science and Engineering',
-      contactEmail: 'cse@bidyapith.edu',
-      deletedAt: null,
-    },
-    create: {
-      code: 'CSE',
-      name: 'Computer Science and Engineering',
-      contactEmail: 'cse@bidyapith.edu',
-    },
-  });
-  const mat = await prisma.department.upsert({
-    where: { code: 'MAT' },
-    update: { name: 'Mathematics', contactEmail: 'mat@bidyapith.edu', deletedAt: null },
-    create: { code: 'MAT', name: 'Mathematics', contactEmail: 'mat@bidyapith.edu' },
-  });
-
-  const bscCse = await prisma.program.upsert({
-    where: { code: 'BSC-CSE' },
-    update: {
-      departmentId: cse.id,
-      name: 'B.Sc. in Computer Science and Engineering',
-      feePerCredit: '4500.00',
-      registrationFee: '5000.00',
-      deletedAt: null,
-    },
-    create: {
-      code: 'BSC-CSE',
-      name: 'B.Sc. in Computer Science and Engineering',
-      departmentId: cse.id,
-      degreeType: DegreeType.BSC,
-      totalCredits: 140,
-      durationYears: 4,
-      minCreditsPerSemester: 9,
-      maxCreditsPerSemester: 15,
-      feePerCredit: '4500.00',
-      registrationFee: '5000.00',
-    },
-  });
-  const mscCse = await prisma.program.upsert({
-    where: { code: 'MSC-CSE' },
-    update: {
-      departmentId: cse.id,
-      name: 'M.Sc. in Computer Science and Engineering',
-      feePerCredit: '6000.00',
-      registrationFee: '8000.00',
-      deletedAt: null,
-    },
-    create: {
-      code: 'MSC-CSE',
-      name: 'M.Sc. in Computer Science and Engineering',
-      departmentId: cse.id,
-      degreeType: DegreeType.MSC,
-      totalCredits: 36,
-      durationYears: 2,
-      minCreditsPerSemester: 6,
-      maxCreditsPerSemester: 12,
-      feePerCredit: '6000.00',
-      registrationFee: '8000.00',
-    },
-  });
-  const bscMat = await prisma.program.upsert({
-    where: { code: 'BSC-MAT' },
-    update: {
-      departmentId: mat.id,
-      name: 'B.Sc. in Mathematics',
-      feePerCredit: '3500.00',
-      registrationFee: '4000.00',
-      deletedAt: null,
-    },
-    create: {
-      code: 'BSC-MAT',
-      name: 'B.Sc. in Mathematics',
-      departmentId: mat.id,
-      degreeType: DegreeType.BSC,
-      totalCredits: 128,
-      durationYears: 4,
-      minCreditsPerSemester: 9,
-      maxCreditsPerSemester: 15,
-      feePerCredit: '3500.00',
-      registrationFee: '4000.00',
-    },
-  });
-
-  const courseByCode = new Map<string, { id: string; code: string }>();
-  for (const course of COURSES) {
-    const row = await prisma.course.upsert({
-      where: { code: course.code },
+  // 2. Seed Programs
+  console.log('🎓 Seeding Programs...');
+  const progMap = new Map<string, string>();
+  for (const p of PROGRAMS_DATA) {
+    const deptId = deptMap.get(p.dept);
+    if (!deptId) continue;
+    const prog = await prisma.program.upsert({
+      where: { code: p.code },
       update: {
-        title: course.title,
-        credits: course.credits,
-        type: course.type,
-        level: course.level,
-        departmentId: course.dept === 'CSE' ? cse.id : mat.id,
+        departmentId: deptId,
+        name: p.name,
+        degreeType: p.degree,
+        totalCredits: p.credits,
+        durationYears: p.years,
+        feePerCredit: p.fee,
+        registrationFee: p.regFee,
         deletedAt: null,
       },
       create: {
-        code: course.code,
-        title: course.title,
-        credits: course.credits,
-        type: course.type,
-        level: course.level,
-        departmentId: course.dept === 'CSE' ? cse.id : mat.id,
+        code: p.code,
+        name: p.name,
+        departmentId: deptId,
+        degreeType: p.degree,
+        totalCredits: p.credits,
+        durationYears: p.years,
+        feePerCredit: p.fee,
+        registrationFee: p.regFee,
       },
     });
-    courseByCode.set(course.code, row);
+    progMap.set(p.code, prog.id);
   }
 
-  const requireCourse = (code: string) => {
-    const row = courseByCode.get(code);
-    if (row === undefined) {
-      throw new Error(`Course ${code} was not seeded`);
-    }
-    return row;
-  };
-
-  for (const program of [bscCse, bscMat, mscCse]) {
-    const codes =
-      program.code === 'BSC-MAT'
-        ? COURSES.filter((c) => c.dept === 'MAT' || c.code.startsWith('CSE-11')).map((c) => c.code)
-        : COURSES.filter((c) => c.dept === 'CSE' || c.code.startsWith('MAT-11')).map((c) => c.code);
-    for (const [index, code] of codes.entries()) {
-      await prisma.programCourse.upsert({
-        where: { programId_courseId: { programId: program.id, courseId: requireCourse(code).id } },
-        update: { recommendedSemester: (index % 8) + 1, type: CourseType.CORE },
-        create: {
-          programId: program.id,
-          courseId: requireCourse(code).id,
-          type: CourseType.CORE,
-          recommendedSemester: (index % 8) + 1,
-        },
-      });
-    }
-  }
-
-  for (const [courseCode, prereqCode] of PREREQS) {
-    await prisma.coursePrerequisite.upsert({
-      where: {
-        courseId_prerequisiteId: {
-          courseId: requireCourse(courseCode).id,
-          prerequisiteId: requireCourse(prereqCode).id,
-        },
-      },
-      update: { minGradePoint: '2.00' },
-      create: {
-        courseId: requireCourse(courseCode).id,
-        prerequisiteId: requireCourse(prereqCode).id,
-        minGradePoint: '2.00',
-      },
-    });
-  }
-
-  await prisma.user.upsert({
-    where: { email: ADMIN_EMAIL },
-    update: {
-      password: adminHash,
-      role: Role.ADMIN,
-      status: UserStatus.ACTIVE,
-      emailVerified: true,
-      deletedAt: null,
-    },
-    create: {
-      firstName: 'System',
-      lastName: 'Admin',
-      email: ADMIN_EMAIL,
-      password: adminHash,
-      role: Role.ADMIN,
-      status: UserStatus.ACTIVE,
-      emailVerified: true,
-    },
-  });
-
-  const testAdminHash = await bcrypt.hash(TEST_ADMIN_PASSWORD, BCRYPT_ROUNDS);
-  await prisma.user.upsert({
-    where: { email: TEST_ADMIN_EMAIL },
-    update: {
-      password: testAdminHash,
-      role: Role.ADMIN,
-      status: UserStatus.ACTIVE,
-      emailVerified: true,
-      deletedAt: null,
-    },
-    create: {
-      firstName: 'Parvej',
-      lastName: 'Admin',
-      email: TEST_ADMIN_EMAIL,
-      password: testAdminHash,
-      role: Role.ADMIN,
-      status: UserStatus.ACTIVE,
-      emailVerified: true,
-    },
-  });
-
-  const instructorSpecs = [
-    {
-      email: 'instructor01@bidyapith.edu',
-      first: 'Mahmud',
-      last: 'Hasan',
-      dept: cse.id,
-      spec: 'Algorithms',
-      des: Designation.PROFESSOR,
-    },
-    {
-      email: 'instructor02@bidyapith.edu',
-      first: 'Nusrat',
-      last: 'Jahan',
-      dept: cse.id,
-      spec: 'Databases',
-      des: Designation.ASSOCIATE_PROFESSOR,
-    },
-    {
-      email: 'instructor03@bidyapith.edu',
-      first: 'Arif',
-      last: 'Rahman',
-      dept: cse.id,
-      spec: 'Software Engineering',
-      des: Designation.ASSISTANT_PROFESSOR,
-    },
-    {
-      email: 'instructor04@bidyapith.edu',
-      first: 'Sabina',
-      last: 'Yasmin',
-      dept: cse.id,
-      spec: 'Programming',
-      des: Designation.LECTURER,
-    },
-    {
-      email: 'instructor05@bidyapith.edu',
-      first: 'Kamal',
-      last: 'Uddin',
-      dept: mat.id,
-      spec: 'Calculus',
-      des: Designation.ASSOCIATE_PROFESSOR,
-    },
-    {
-      email: 'instructor06@bidyapith.edu',
-      first: 'Rina',
-      last: 'Akter',
-      dept: mat.id,
-      spec: 'Linear Algebra',
-      des: Designation.LECTURER,
-    },
-  ] as const;
-
-  const instructors: { profileId: string; email: string }[] = [];
-  for (const [index, spec] of instructorSpecs.entries()) {
-    const user = await prisma.user.upsert({
-      where: { email: spec.email },
+  // 3. Seed Courses
+  console.log('📚 Seeding Courses...');
+  const courseMap = new Map<string, string>();
+  for (const c of COURSES_DATA) {
+    const deptId = deptMap.get(c.dept);
+    if (!deptId) continue;
+    const course = await prisma.course.upsert({
+      where: { code: c.code },
       update: {
-        password: instructorHash,
-        firstName: spec.first,
-        lastName: spec.last,
-        role: Role.INSTRUCTOR,
+        title: c.title,
+        credits: c.credits,
+        type: c.type,
+        level: c.level,
+        departmentId: deptId,
+        deletedAt: null,
+      },
+      create: {
+        code: c.code,
+        title: c.title,
+        credits: c.credits,
+        type: c.type,
+        level: c.level,
+        departmentId: deptId,
+      },
+    });
+    courseMap.set(c.code, course.id);
+  }
+
+  // 4. Seed Admins
+  console.log('🛡️ Seeding Admins...');
+  for (let i = 0; i < ADMINS_DATA.length; i++) {
+    const a = ADMINS_DATA[i]!;
+    const hash = a.email === 'devparvejme@gmail.com' ? testAdminHash : adminHash;
+    await prisma.user.upsert({
+      where: { email: a.email },
+      update: {
+        firstName: a.first,
+        lastName: a.last,
+        password: hash,
+        role: Role.ADMIN,
         status: UserStatus.ACTIVE,
+        phone: a.phone,
+        avatarUrl: getAvatar(i + 40),
         emailVerified: true,
         deletedAt: null,
       },
       create: {
-        firstName: spec.first,
-        lastName: spec.last,
-        email: spec.email,
+        email: a.email,
+        firstName: a.first,
+        lastName: a.last,
+        password: hash,
+        role: Role.ADMIN,
+        status: UserStatus.ACTIVE,
+        phone: a.phone,
+        avatarUrl: getAvatar(i + 40),
+        emailVerified: true,
+      },
+    });
+  }
+
+  // 5. Seed Instructors (25+)
+  console.log(`👨‍🏫 Seeding ${INSTRUCTORS_DATA.length} Instructors...`);
+  const instructorIds: string[] = [];
+  for (let i = 0; i < INSTRUCTORS_DATA.length; i++) {
+    const ins = INSTRUCTORS_DATA[i]!;
+    const deptId = deptMap.get(ins.dept)!;
+    const user = await prisma.user.upsert({
+      where: { email: ins.email },
+      update: {
+        firstName: ins.first,
+        lastName: ins.last,
         password: instructorHash,
         role: Role.INSTRUCTOR,
         status: UserStatus.ACTIVE,
-        emailVerified: true,
-      },
-    });
-    const employeeId = `EMP-${String(index + 1).padStart(4, '0')}`;
-    const existing = await prisma.instructorProfile.findUnique({ where: { userId: user.id } });
-    const profile =
-      existing === null
-        ? await prisma.instructorProfile.create({
-            data: {
-              userId: user.id,
-              employeeId,
-              departmentId: spec.dept,
-              designation: spec.des,
-              specialization: spec.spec,
-              joiningDate: new Date('2018-01-15'),
-            },
-          })
-        : await prisma.instructorProfile.update({
-            where: { id: existing.id },
-            data: {
-              departmentId: spec.dept,
-              designation: spec.des,
-              specialization: spec.spec,
-              deletedAt: null,
-            },
-          });
-    instructors.push({ profileId: profile.id, email: spec.email });
-  }
-
-  const requireInstructor = (index: number) => {
-    const row = instructors[index];
-    if (row === undefined) {
-      throw new Error(`Instructor ${index} missing`);
-    }
-    return row;
-  };
-
-  const upsertSemester = async (
-    slot: { term: SemesterTerm; year: number },
-    status: SemesterStatus,
-    kind: 'completed' | 'registration' | 'upcoming',
-  ) => {
-    const dates = semesterDates(kind, now);
-    return prisma.semester.upsert({
-      where: { term_year: { term: slot.term, year: slot.year } },
-      update: {
-        name: displayName(slot.term, slot.year),
-        status,
-        ...dates,
-        deletedAt: null,
-      },
-      create: {
-        term: slot.term,
-        year: slot.year,
-        name: displayName(slot.term, slot.year),
-        status,
-        ...dates,
-      },
-    });
-  };
-
-  const completedSemester = await upsertSemester(
-    completedSlot,
-    SemesterStatus.COMPLETED,
-    'completed',
-  );
-  const retakeSemester = await upsertSemester(retakeSlot, SemesterStatus.COMPLETED, 'completed');
-  const registrationSemester = await upsertSemester(
-    registrationSlot,
-    SemesterStatus.REGISTRATION,
-    'registration',
-  );
-  const upcomingSemester = await upsertSemester(upcomingSlot, SemesterStatus.UPCOMING, 'upcoming');
-
-  const students: {
-    profileId: string;
-    userId: string;
-    email: string;
-    studentId: string;
-  }[] = [];
-
-  for (let index = 0; index < 30; index += 1) {
-    const n = index + 1;
-    const email = `student${String(n).padStart(2, '0')}@bidyapith.edu`;
-    const program = index < 20 ? bscCse : bscMat;
-    const batch = index % 2 === 0 ? '2024' : '2025';
-    const studentId =
-      program.code === 'BSC-CSE'
-        ? `2024-BSC-CSE-${String(n).padStart(4, '0')}`
-        : `2024-BSC-MAT-${String(n).padStart(4, '0')}`;
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        password: studentHash,
-        firstName: FIRST_NAMES[index] ?? 'Student',
-        lastName: `Seed${String(n).padStart(2, '0')}`,
-        role: Role.STUDENT,
-        status: UserStatus.ACTIVE,
+        phone: ins.phone,
+        avatarUrl: getAvatar(i + 15),
         emailVerified: true,
         deletedAt: null,
       },
       create: {
-        firstName: FIRST_NAMES[index] ?? 'Student',
-        lastName: `Seed${String(n).padStart(2, '0')}`,
-        email,
-        password: studentHash,
-        role: Role.STUDENT,
+        email: ins.email,
+        firstName: ins.first,
+        lastName: ins.last,
+        password: instructorHash,
+        role: Role.INSTRUCTOR,
         status: UserStatus.ACTIVE,
+        phone: ins.phone,
+        avatarUrl: getAvatar(i + 15),
         emailVerified: true,
       },
     });
-    const existing = await prisma.studentProfile.findUnique({ where: { userId: user.id } });
-    const profile =
-      existing === null
-        ? await prisma.studentProfile.create({
-            data: {
-              userId: user.id,
-              studentId,
-              programId: program.id,
-              batch,
-              admissionDate: new Date(`${batch}-01-15`),
-              status: StudentStatus.ACTIVE,
-            },
-          })
-        : await prisma.studentProfile.update({
-            where: { id: existing.id },
-            data: {
-              programId: program.id,
-              batch,
-              status: StudentStatus.ACTIVE,
-              deletedAt: null,
-            },
-          });
-    students.push({ profileId: profile.id, userId: user.id, email, studentId });
+
+    const empId = `FAC-${String(100 + i + 1).padStart(4, '0')}`;
+    const profile = await prisma.instructorProfile.upsert({
+      where: { userId: user.id },
+      update: {
+        departmentId: deptId,
+        designation: ins.des,
+        specialization: ins.spec,
+        employeeId: empId,
+        deletedAt: null,
+      },
+      create: {
+        userId: user.id,
+        employeeId: empId,
+        departmentId: deptId,
+        designation: ins.des,
+        specialization: ins.spec,
+        joiningDate: new Date('2016-01-15'),
+      },
+    });
+    instructorIds.push(profile.id);
   }
 
-  const studentAt = (index: number) => {
-    const row = students[index];
-    if (row === undefined) {
-      throw new Error(`Student ${index} missing`);
-    }
-    return row;
-  };
+  // 6. Seed Semesters
+  console.log('🗓️ Seeding Semesters...');
+  const now = new Date();
+  const currentSemester = await prisma.semester.upsert({
+    where: { term_year: { term: SemesterTerm.FALL, year: 2026 } },
+    update: {
+      name: 'Fall 2026',
+      status: SemesterStatus.REGISTRATION,
+      registrationStart: addDays(now, -10),
+      registrationEnd: addDays(now, 15),
+      dropDeadline: addDays(now, 25),
+      classStartDate: addDays(now, 20),
+      classEndDate: addDays(now, 120),
+      deletedAt: null,
+    },
+    create: {
+      term: SemesterTerm.FALL,
+      year: 2026,
+      name: 'Fall 2026',
+      status: SemesterStatus.REGISTRATION,
+      registrationStart: addDays(now, -10),
+      registrationEnd: addDays(now, 15),
+      dropDeadline: addDays(now, 25),
+      classStartDate: addDays(now, 20),
+      classEndDate: addDays(now, 120),
+    },
+  });
 
-  const upsertOffering = async (input: {
-    courseCode: string;
-    semesterId: string;
-    section: string;
-    instructorIndex: number;
-    capacity: number;
-    enrolledCount: number;
-    status: OfferingStatus;
-    room: string;
-    day: DayOfWeek;
-    start: string;
-    end: string;
-  }) => {
+  const springSemester = await prisma.semester.upsert({
+    where: { term_year: { term: SemesterTerm.SPRING, year: 2026 } },
+    update: {
+      name: 'Spring 2026',
+      status: SemesterStatus.COMPLETED,
+      registrationStart: addDays(now, -200),
+      registrationEnd: addDays(now, -170),
+      dropDeadline: addDays(now, -160),
+      classStartDate: addDays(now, -150),
+      classEndDate: addDays(now, -30),
+      resultPublishedAt: addDays(now, -15),
+      deletedAt: null,
+    },
+    create: {
+      term: SemesterTerm.SPRING,
+      year: 2026,
+      name: 'Spring 2026',
+      status: SemesterStatus.COMPLETED,
+      registrationStart: addDays(now, -200),
+      registrationEnd: addDays(now, -170),
+      dropDeadline: addDays(now, -160),
+      classStartDate: addDays(now, -150),
+      classEndDate: addDays(now, -30),
+      resultPublishedAt: addDays(now, -15),
+    },
+  });
+
+  // 7. Seed Course Offerings
+  console.log('🏛️ Seeding Course Offerings...');
+  const offeringList: { id: string; courseId: string }[] = [];
+  const sampleOfferings = [
+    { code: 'CSE-1101', sec: 'A', room: 'AB2-401', insIdx: 0, day: DayOfWeek.SUNDAY, start: '09:00', end: '10:30' },
+    { code: 'CSE-2201', sec: 'A', room: 'AB2-402', insIdx: 4, day: DayOfWeek.MONDAY, start: '10:30', end: '12:00' },
+    { code: 'CSE-2303', sec: 'A', room: 'AB2-305', insIdx: 1, day: DayOfWeek.TUESDAY, start: '09:00', end: '10:30' },
+    { code: 'CSE-3303', sec: 'A', room: 'AB2-306', insIdx: 3, day: DayOfWeek.WEDNESDAY, start: '11:00', end: '12:30' },
+    { code: 'CSE-4108', sec: 'A', room: 'AB3-208', insIdx: 2, day: DayOfWeek.THURSDAY, start: '14:00', end: '15:30' },
+    { code: 'EEE-1101', sec: 'A', room: 'AB1-201', insIdx: 6, day: DayOfWeek.SUNDAY, start: '11:00', end: '12:30' },
+    { code: 'MAT-1101', sec: 'A', room: 'AB1-112', insIdx: 14, day: DayOfWeek.MONDAY, start: '13:00', end: '14:30' },
+    { code: 'MAT-2101', sec: 'A', room: 'AB1-114', insIdx: 15, day: DayOfWeek.TUESDAY, start: '14:30', end: '16:00' },
+    { code: 'BBA-1101', sec: 'A', room: 'AB4-101', insIdx: 11, day: DayOfWeek.WEDNESDAY, start: '09:30', end: '11:00' },
+    { code: 'ENG-1101', sec: 'A', room: 'AB4-202', insIdx: 19, day: DayOfWeek.THURSDAY, start: '10:00', end: '11:30' },
+  ];
+
+  for (const o of sampleOfferings) {
+    const cId = courseMap.get(o.code);
+    if (!cId) continue;
+    const instructorId = instructorIds[o.insIdx] || instructorIds[0];
     const offering = await prisma.courseOffering.upsert({
       where: {
         courseId_semesterId_section: {
-          courseId: requireCourse(input.courseCode).id,
-          semesterId: input.semesterId,
-          section: input.section,
+          courseId: cId,
+          semesterId: currentSemester.id,
+          section: o.sec,
         },
       },
       update: {
-        instructorId: requireInstructor(input.instructorIndex).profileId,
-        capacity: input.capacity,
-        enrolledCount: input.enrolledCount,
-        status: input.status,
-        room: input.room,
+        instructorId,
+        capacity: 45,
+        enrolledCount: 30,
+        status: OfferingStatus.OPEN,
+        room: o.room,
         deletedAt: null,
       },
       create: {
-        courseId: requireCourse(input.courseCode).id,
-        semesterId: input.semesterId,
-        instructorId: requireInstructor(input.instructorIndex).profileId,
-        section: input.section,
-        capacity: input.capacity,
-        enrolledCount: input.enrolledCount,
-        status: input.status,
-        room: input.room,
+        courseId: cId,
+        semesterId: currentSemester.id,
+        instructorId,
+        section: o.sec,
+        capacity: 45,
+        enrolledCount: 30,
+        status: OfferingStatus.OPEN,
+        room: o.room,
       },
     });
+    offeringList.push({ id: offering.id, courseId: cId });
+
     await prisma.classSchedule.upsert({
       where: {
         offeringId_dayOfWeek_startTime: {
           offeringId: offering.id,
-          dayOfWeek: input.day,
-          startTime: input.start,
+          dayOfWeek: o.day,
+          startTime: o.start,
         },
       },
-      update: { endTime: input.end, room: input.room },
+      update: { endTime: o.end, room: o.room },
       create: {
         offeringId: offering.id,
-        dayOfWeek: input.day,
-        startTime: input.start,
-        endTime: input.end,
-        room: input.room,
+        dayOfWeek: o.day,
+        startTime: o.start,
+        endTime: o.end,
+        room: o.room,
       },
-    });
-    return offering;
-  };
-
-  const completed1101 = await upsertOffering({
-    courseCode: 'CSE-1101',
-    semesterId: completedSemester.id,
-    section: 'A',
-    instructorIndex: 3,
-    capacity: 40,
-    enrolledCount: 8,
-    status: OfferingStatus.COMPLETED,
-    room: 'CSE-101',
-    day: DayOfWeek.SUNDAY,
-    start: '09:00',
-    end: '10:30',
-  });
-  const completed2201 = await upsertOffering({
-    courseCode: 'CSE-2201',
-    semesterId: completedSemester.id,
-    section: 'A',
-    instructorIndex: 0,
-    capacity: 40,
-    enrolledCount: 4,
-    status: OfferingStatus.COMPLETED,
-    room: 'CSE-201',
-    day: DayOfWeek.MONDAY,
-    start: '11:00',
-    end: '12:30',
-  });
-  const completed1201 = await upsertOffering({
-    courseCode: 'CSE-1201',
-    semesterId: completedSemester.id,
-    section: 'A',
-    instructorIndex: 2,
-    capacity: 40,
-    enrolledCount: 4,
-    status: OfferingStatus.COMPLETED,
-    room: 'CSE-102',
-    day: DayOfWeek.TUESDAY,
-    start: '09:00',
-    end: '10:30',
-  });
-  const completedMat = await upsertOffering({
-    courseCode: 'MAT-1101',
-    semesterId: completedSemester.id,
-    section: 'A',
-    instructorIndex: 4,
-    capacity: 40,
-    enrolledCount: 4,
-    status: OfferingStatus.COMPLETED,
-    room: 'MAT-101',
-    day: DayOfWeek.WEDNESDAY,
-    start: '09:00',
-    end: '10:30',
-  });
-  const retake2201 = await upsertOffering({
-    courseCode: 'CSE-2201',
-    semesterId: retakeSemester.id,
-    section: 'A',
-    instructorIndex: 0,
-    capacity: 40,
-    enrolledCount: 1,
-    status: OfferingStatus.COMPLETED,
-    room: 'CSE-201',
-    day: DayOfWeek.MONDAY,
-    start: '11:00',
-    end: '12:30',
-  });
-
-  const reg1101 = await upsertOffering({
-    courseCode: 'CSE-1101',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 3,
-    capacity: 40,
-    enrolledCount: 2,
-    status: OfferingStatus.OPEN,
-    room: 'CSE-101',
-    day: DayOfWeek.SUNDAY,
-    start: '09:00',
-    end: '10:30',
-  });
-  const reg2201 = await upsertOffering({
-    courseCode: 'CSE-2201',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 0,
-    capacity: 40,
-    enrolledCount: 0,
-    status: OfferingStatus.OPEN,
-    room: 'CSE-201',
-    day: DayOfWeek.TUESDAY,
-    start: '11:00',
-    end: '12:30',
-  });
-  const reg3301 = await upsertOffering({
-    courseCode: 'CSE-3301',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 0,
-    capacity: 40,
-    enrolledCount: 0,
-    status: OfferingStatus.OPEN,
-    room: 'CSE-301',
-    day: DayOfWeek.WEDNESDAY,
-    start: '11:00',
-    end: '12:30',
-  });
-  const regFull = await upsertOffering({
-    courseCode: 'CSE-1102',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 3,
-    capacity: 5,
-    enrolledCount: 5,
-    status: OfferingStatus.OPEN,
-    room: 'LAB-1',
-    day: DayOfWeek.THURSDAY,
-    start: '14:00',
-    end: '16:00',
-  });
-  const regLastSeat = await upsertOffering({
-    courseCode: 'MAT-1101',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 4,
-    capacity: 2,
-    enrolledCount: 1,
-    status: OfferingStatus.OPEN,
-    room: 'MAT-101',
-    day: DayOfWeek.SUNDAY,
-    start: '14:00',
-    end: '15:30',
-  });
-  const regConflictA = await upsertOffering({
-    courseCode: 'CSE-2303',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 1,
-    capacity: 40,
-    enrolledCount: 1,
-    status: OfferingStatus.OPEN,
-    room: 'CSE-202',
-    day: DayOfWeek.MONDAY,
-    start: '09:00',
-    end: '10:30',
-  });
-  const regConflictB = await upsertOffering({
-    courseCode: 'CSE-3201',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 2,
-    capacity: 40,
-    enrolledCount: 0,
-    status: OfferingStatus.OPEN,
-    room: 'CSE-203',
-    day: DayOfWeek.MONDAY,
-    start: '09:00',
-    end: '10:30',
-  });
-  const regMat1201 = await upsertOffering({
-    courseCode: 'MAT-1201',
-    semesterId: registrationSemester.id,
-    section: 'A',
-    instructorIndex: 5,
-    capacity: 40,
-    enrolledCount: 0,
-    status: OfferingStatus.OPEN,
-    room: 'MAT-102',
-    day: DayOfWeek.TUESDAY,
-    start: '14:00',
-    end: '15:30',
-  });
-
-  const upsertEnrollment = async (input: {
-    studentIndex: number;
-    offeringId: string;
-    status: EnrollmentStatus;
-    letter?: LetterGrade;
-    marks?: string;
-    examEligible?: boolean;
-  }) => {
-    const student = studentAt(input.studentIndex);
-    const letter = input.letter;
-    const point = letter === undefined ? null : gradePoint(letter);
-    return prisma.enrollment.upsert({
-      where: {
-        studentId_offeringId: { studentId: student.profileId, offeringId: input.offeringId },
-      },
-      update: {
-        status: input.status,
-        ...(letter !== undefined ? { letterGrade: letter, gradePoint: point } : {}),
-        ...(input.marks !== undefined ? { totalMarks: input.marks } : {}),
-        examEligible: input.examEligible ?? true,
-      },
-      create: {
-        studentId: student.profileId,
-        offeringId: input.offeringId,
-        status: input.status,
-        ...(letter !== undefined ? { letterGrade: letter, gradePoint: point } : {}),
-        ...(input.marks !== undefined ? { totalMarks: input.marks } : {}),
-        examEligible: input.examEligible ?? true,
-      },
-    });
-  };
-
-  const clean = 0;
-  const hold = 1;
-  const lowAttend = 2;
-  const retake = 3;
-
-  await upsertEnrollment({
-    studentIndex: clean,
-    offeringId: completed1101.id,
-    status: EnrollmentStatus.COMPLETED,
-    letter: LetterGrade.A_PLUS,
-    marks: '92.00',
-  });
-  await upsertEnrollment({
-    studentIndex: clean,
-    offeringId: completed1201.id,
-    status: EnrollmentStatus.COMPLETED,
-    letter: LetterGrade.A,
-    marks: '86.00',
-  });
-  await upsertEnrollment({
-    studentIndex: clean,
-    offeringId: completedMat.id,
-    status: EnrollmentStatus.COMPLETED,
-    letter: LetterGrade.B,
-    marks: '72.00',
-  });
-
-  await upsertEnrollment({
-    studentIndex: hold,
-    offeringId: completed1101.id,
-    status: EnrollmentStatus.COMPLETED,
-    letter: LetterGrade.B_PLUS,
-    marks: '78.00',
-  });
-
-  await upsertEnrollment({
-    studentIndex: retake,
-    offeringId: completed1101.id,
-    status: EnrollmentStatus.COMPLETED,
-    letter: LetterGrade.A,
-    marks: '85.00',
-  });
-  await upsertEnrollment({
-    studentIndex: retake,
-    offeringId: completed2201.id,
-    status: EnrollmentStatus.FAILED,
-    letter: LetterGrade.F,
-    marks: '32.00',
-  });
-  await upsertEnrollment({
-    studentIndex: retake,
-    offeringId: retake2201.id,
-    status: EnrollmentStatus.COMPLETED,
-    letter: LetterGrade.B,
-    marks: '68.00',
-  });
-
-  for (const index of [4, 5, 6, 7]) {
-    await upsertEnrollment({
-      studentIndex: index,
-      offeringId: completed1101.id,
-      status: EnrollmentStatus.COMPLETED,
-      letter: LetterGrade.B,
-      marks: '70.00',
     });
   }
 
-  const lowEnrollment = await upsertEnrollment({
-    studentIndex: lowAttend,
-    offeringId: reg1101.id,
-    status: EnrollmentStatus.ENROLLED,
-    examEligible: false,
-  });
-  await upsertEnrollment({
-    studentIndex: clean,
-    offeringId: reg1101.id,
-    status: EnrollmentStatus.ENROLLED,
-  });
-  await upsertEnrollment({
-    studentIndex: 5,
-    offeringId: regConflictA.id,
-    status: EnrollmentStatus.ENROLLED,
-  });
-  await upsertEnrollment({
-    studentIndex: 6,
-    offeringId: regLastSeat.id,
-    status: EnrollmentStatus.ENROLLED,
-  });
-  for (const index of [9, 10, 11, 12, 13]) {
-    await upsertEnrollment({
-      studentIndex: index,
-      offeringId: regFull.id,
-      status: EnrollmentStatus.ENROLLED,
-    });
-  }
+  // 8. Seed 100 Students!
+  console.log('🎒 Seeding 100 Students with realistic profiles and photos...');
+  const studentProfiles: { id: string; userId: string }[] = [];
+  const programCodes = ['BSC-CSE', 'BSC-EEE', 'BSC-CIV', 'BBA-GEN', 'BSC-MAT', 'BSC-PHY', 'BA-ENG', 'LLB-HON', 'BPH-PRO', 'BSS-ECO'];
+  const batches = ['2023', '2024', '2025', '2026'];
+  const cities = ['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Cumilla', 'Gazipur', 'Narayanganj'];
 
-  const attendDates = [addDays(now, -10), addDays(now, -9), addDays(now, -8), addDays(now, -7)];
-  const attendStatuses = [
-    AttendanceStatus.PRESENT,
-    AttendanceStatus.ABSENT,
-    AttendanceStatus.ABSENT,
-    AttendanceStatus.ABSENT,
-  ];
-  for (const [index, date] of attendDates.entries()) {
-    const day = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const status = attendStatuses[index] ?? AttendanceStatus.ABSENT;
-    await prisma.attendance.upsert({
-      where: { enrollmentId_date: { enrollmentId: lowEnrollment.id, date: day } },
-      update: { status },
-      create: { enrollmentId: lowEnrollment.id, date: day, status },
-    });
-  }
+  for (let i = 1; i <= 100; i++) {
+    const padded = String(i).padStart(3, '0');
+    const email = `student${padded}@bidyapith.edu`;
+    const firstName = BANGLA_FIRST_NAMES[(i - 1) % BANGLA_FIRST_NAMES.length]!;
+    const lastName = BANGLA_LAST_NAMES[(i * 3) % BANGLA_LAST_NAMES.length]!;
+    const progCode = programCodes[(i - 1) % programCodes.length]!;
+    const progId = progMap.get(progCode) || progMap.get('BSC-CSE')!;
+    const batch = batches[(i - 1) % batches.length]!;
+    const studentIdNum = `${batch}-${progCode}-${String(1000 + i)}`;
+    const avatar = getAvatar(i);
+    const phone = `+88017${String(10000000 + i * 83).slice(0, 8)}`;
+    const guardianPhone = `+88018${String(20000000 + i * 71).slice(0, 8)}`;
+    const city = cities[i % cities.length]!;
+    const cgpa = (2.60 + ((i * 17) % 140) / 100).toFixed(2);
+    const credits = (15 + (i % 4) * 32).toFixed(1);
 
-  const upsertResult = async (
-    studentIndex: number,
-    semesterId: string,
-    gpa: string,
-    attempted: string,
-    earned: string,
-    cgpa: string,
-  ) => {
-    const publishedAt = addDays(now, -10);
-    await prisma.semesterResult.upsert({
-      where: {
-        studentId_semesterId: { studentId: studentAt(studentIndex).profileId, semesterId },
-      },
+    const user = await prisma.user.upsert({
+      where: { email },
       update: {
-        gpa,
-        creditsAttempted: attempted,
-        creditsEarned: earned,
-        cgpaSnapshot: cgpa,
-        isPublished: true,
-        publishedAt,
-      },
-      create: {
-        studentId: studentAt(studentIndex).profileId,
-        semesterId,
-        gpa,
-        creditsAttempted: attempted,
-        creditsEarned: earned,
-        cgpaSnapshot: cgpa,
-        isPublished: true,
-        publishedAt,
-      },
-    });
-  };
-
-  await upsertResult(clean, completedSemester.id, '3.58', '9.0', '9.0', '3.58');
-  await upsertResult(hold, completedSemester.id, '3.25', '3.0', '3.0', '3.25');
-  await upsertResult(retake, completedSemester.id, '1.88', '6.0', '3.0', '1.88');
-  await upsertResult(retake, retakeSemester.id, '3.00', '3.0', '3.0', '3.38');
-
-  await prisma.studentProfile.update({
-    where: { id: studentAt(clean).profileId },
-    data: { cgpa: '3.58', totalCreditsEarned: '9.0' },
-  });
-  await prisma.studentProfile.update({
-    where: { id: studentAt(hold).profileId },
-    data: { cgpa: '3.25', totalCreditsEarned: '3.0' },
-  });
-  await prisma.studentProfile.update({
-    where: { id: studentAt(retake).profileId },
-    data: { cgpa: '3.38', totalCreditsEarned: '6.0' },
-  });
-
-  const upsertInvoice = async (input: {
-    studentIndex: number;
-    semesterId: string;
-    type: InvoiceType;
-    number: string;
-    status: InvoiceStatus;
-    total: string;
-    paid: string;
-    due: Date;
-    paidAt?: Date;
-  }) => {
-    await prisma.feeInvoice.upsert({
-      where: {
-        studentId_semesterId_type: {
-          studentId: studentAt(input.studentIndex).profileId,
-          semesterId: input.semesterId,
-          type: input.type,
-        },
-      },
-      update: {
-        invoiceNumber: input.number,
-        status: input.status,
-        totalAmount: input.total,
-        paidAmount: input.paid,
-        dueDate: input.due,
-        paidAt: input.paidAt ?? null,
+        firstName,
+        lastName,
+        password: studentHash,
+        role: Role.STUDENT,
+        status: UserStatus.ACTIVE,
+        phone,
+        avatarUrl: avatar,
+        emailVerified: true,
         deletedAt: null,
       },
       create: {
-        invoiceNumber: input.number,
-        studentId: studentAt(input.studentIndex).profileId,
-        semesterId: input.semesterId,
-        type: input.type,
-        status: input.status,
-        totalAmount: input.total,
-        paidAmount: input.paid,
-        dueDate: input.due,
-        paidAt: input.paidAt ?? null,
+        email,
+        firstName,
+        lastName,
+        password: studentHash,
+        role: Role.STUDENT,
+        status: UserStatus.ACTIVE,
+        phone,
+        avatarUrl: avatar,
+        emailVerified: true,
       },
     });
-  };
 
-  await upsertInvoice({
-    studentIndex: clean,
-    semesterId: completedSemester.id,
-    type: InvoiceType.TUITION,
-    number: 'INV-SEED-PAID-0001',
-    status: InvoiceStatus.PAID,
-    total: '13500.00',
-    paid: '13500.00',
-    due: addDays(now, -120),
-    paidAt: addDays(now, -110),
-  });
-  await upsertInvoice({
-    studentIndex: clean,
-    semesterId: registrationSemester.id,
-    type: InvoiceType.REGISTRATION,
-    number: 'INV-SEED-CUR-0001',
-    status: InvoiceStatus.UNPAID,
-    total: '5000.00',
-    paid: '0.00',
-    due: addDays(now, 14),
-  });
-  await upsertInvoice({
-    studentIndex: hold,
-    semesterId: completedSemester.id,
-    type: InvoiceType.TUITION,
-    number: 'INV-SEED-DUE-0001',
-    status: InvoiceStatus.UNPAID,
-    total: '13500.00',
-    paid: '0.00',
-    due: addDays(now, -40),
-  });
-
-  const paidInvoice = await prisma.feeInvoice.findUnique({
-    where: { invoiceNumber: 'INV-SEED-PAID-0001' },
-  });
-  if (paidInvoice !== null) {
-    await prisma.payment.upsert({
-      where: { transactionRef: 'PAY-SEED-PAID-0001' },
+    const studentProf = await prisma.studentProfile.upsert({
+      where: { userId: user.id },
       update: {
-        invoiceId: paidInvoice.id,
-        status: PaymentStatus.SUCCESS,
-        amount: '13500.00',
-        paidAt: addDays(now, -110),
-        gatewayTransactionId: 'pi_seed_paid_0001',
+        studentId: studentIdNum,
+        programId: progId,
+        batch,
+        cgpa: new Prisma.Decimal(cgpa),
+        totalCreditsEarned: new Prisma.Decimal(credits),
+        guardianName: `Md. ${BANGLA_LAST_NAMES[i % BANGLA_LAST_NAMES.length]}`,
+        guardianPhone,
+        address: `${12 + (i % 40)}, Road ${1 + (i % 20)}, Sector ${3 + (i % 14)}, ${city}`,
+        status: StudentStatus.ACTIVE,
+        deletedAt: null,
       },
       create: {
-        invoiceId: paidInvoice.id,
-        transactionRef: 'PAY-SEED-PAID-0001',
-        gateway: PaymentGateway.STRIPE,
-        status: PaymentStatus.SUCCESS,
-        amount: '13500.00',
-        paidAt: addDays(now, -110),
-        gatewayTransactionId: 'pi_seed_paid_0001',
+        userId: user.id,
+        studentId: studentIdNum,
+        programId: progId,
+        batch,
+        admissionDate: new Date(`${batch}-01-15`),
+        cgpa: new Prisma.Decimal(cgpa),
+        totalCreditsEarned: new Prisma.Decimal(credits),
+        guardianName: `Md. ${BANGLA_LAST_NAMES[i % BANGLA_LAST_NAMES.length]}`,
+        guardianPhone,
+        address: `${12 + (i % 40)}, Road ${1 + (i % 20)}, Sector ${3 + (i % 14)}, ${city}`,
+        status: StudentStatus.ACTIVE,
       },
     });
-  }
+    studentProfiles.push({ id: studentProf.id, userId: user.id });
 
-  const upsertFinalExam = async (offeringId: string, title: string) => {
-    const existing = await prisma.exam.findFirst({
-      where: { offeringId, type: ExamType.FINAL, deletedAt: null },
-    });
-    if (existing === null) {
-      return prisma.exam.create({
-        data: {
-          offeringId,
-          type: ExamType.FINAL,
-          title,
-          totalMarks: '100.00',
-          weight: '100.00',
-          examDate: addDays(now, -30),
-          isPublished: true,
+    // Also add primary demo student "student01@bidyapith.edu" enrollments & invoices
+    if (i <= 30 && offeringList.length > 0) {
+      const off = offeringList[(i - 1) % offeringList.length]!;
+      const enrollment = await prisma.enrollment.upsert({
+        where: { studentId_offeringId: { studentId: studentProf.id, offeringId: off.id } },
+        update: {
+          status: EnrollmentStatus.ENROLLED,
+          examEligible: true,
+        },
+        create: {
+          studentId: studentProf.id,
+          offeringId: off.id,
+          status: EnrollmentStatus.ENROLLED,
+          examEligible: true,
+        },
+      });
+
+      // Seed attendance
+      await prisma.attendance.upsert({
+        where: { enrollmentId_date: { enrollmentId: enrollment.id, date: new Date('2026-09-22') } },
+        update: { status: AttendanceStatus.PRESENT },
+        create: {
+          enrollmentId: enrollment.id,
+          date: new Date('2026-09-22'),
+          status: AttendanceStatus.PRESENT,
         },
       });
     }
-    return prisma.exam.update({
-      where: { id: existing.id },
-      data: { title, isPublished: true, deletedAt: null },
-    });
-  };
 
-  const exam1101 = await upsertFinalExam(completed1101.id, 'CSE-1101 Final');
-  const graded1101 = await prisma.enrollment.findMany({
-    where: {
-      offeringId: completed1101.id,
-      status: { in: [EnrollmentStatus.COMPLETED, EnrollmentStatus.FAILED] },
-    },
-    select: { id: true, totalMarks: true },
-  });
-  for (const row of graded1101) {
-    const marks = row.totalMarks ?? new Prisma.Decimal('70.00');
-    await prisma.examResult.upsert({
-      where: { examId_enrollmentId: { examId: exam1101.id, enrollmentId: row.id } },
-      update: { marksObtained: marks },
-      create: { examId: exam1101.id, enrollmentId: row.id, marksObtained: marks },
-    });
+    // Seed Invoice
+    if (i <= 40) {
+      const invNum = `INV-2026-${String(1000 + i)}`;
+      await prisma.feeInvoice.upsert({
+        where: { invoiceNumber: invNum },
+        update: {
+          studentId: studentProf.id,
+          semesterId: currentSemester.id,
+          type: InvoiceType.TUITION,
+          status: i % 2 === 0 ? InvoiceStatus.PAID : InvoiceStatus.UNPAID,
+          totalAmount: new Prisma.Decimal('45000.00'),
+          paidAmount: i % 2 === 0 ? new Prisma.Decimal('45000.00') : new Prisma.Decimal('0.00'),
+          dueDate: addDays(now, 20),
+          deletedAt: null,
+        },
+        create: {
+          invoiceNumber: invNum,
+          studentId: studentProf.id,
+          semesterId: currentSemester.id,
+          type: InvoiceType.TUITION,
+          status: i % 2 === 0 ? InvoiceStatus.PAID : InvoiceStatus.UNPAID,
+          totalAmount: new Prisma.Decimal('45000.00'),
+          paidAmount: i % 2 === 0 ? new Prisma.Decimal('45000.00') : new Prisma.Decimal('0.00'),
+          dueDate: addDays(now, 20),
+        },
+      });
+    }
   }
 
-  const occupiedStatuses = [
-    EnrollmentStatus.ENROLLED,
-    EnrollmentStatus.COMPLETED,
-    EnrollmentStatus.FAILED,
-  ];
-  const syncSeats = async (offeringId: string, mode?: 'full' | 'lastSeat') => {
-    const occupied = await prisma.enrollment.count({
-      where: { offeringId, status: { in: occupiedStatuses } },
-    });
-    const capacity =
-      mode === 'full' ? Math.max(occupied, 1) : mode === 'lastSeat' ? occupied + 1 : undefined;
-    await prisma.courseOffering.update({
-      where: { id: offeringId },
-      data: {
-        enrolledCount: occupied,
-        ...(capacity === undefined ? {} : { capacity }),
-      },
-    });
-    return { occupied, capacity };
-  };
-
-  await syncSeats(completed1101.id);
-  await syncSeats(completed2201.id);
-  await syncSeats(completed1201.id);
-  await syncSeats(completedMat.id);
-  await syncSeats(retake2201.id);
-  await syncSeats(reg1101.id);
-  await syncSeats(reg2201.id);
-  await syncSeats(reg3301.id);
-  await syncSeats(regConflictA.id);
-  await syncSeats(regConflictB.id);
-  await syncSeats(regMat1201.id);
-  const fullSeats = await syncSeats(regFull.id, 'full');
-  const lastSeats = await syncSeats(regLastSeat.id, 'lastSeat');
-
-  const counts = {
-    users: await prisma.user.count({ where: { deletedAt: null } }),
-    departments: await prisma.department.count({ where: { deletedAt: null } }),
-    programs: await prisma.program.count({ where: { deletedAt: null } }),
-    courses: await prisma.course.count({ where: { deletedAt: null } }),
-    semesters: await prisma.semester.count({ where: { deletedAt: null } }),
-    offerings: await prisma.courseOffering.count({ where: { deletedAt: null } }),
-    enrollments: await prisma.enrollment.count(),
-    invoices: await prisma.feeInvoice.count({ where: { deletedAt: null } }),
-    payments: await prisma.payment.count(),
-    exams: await prisma.exam.count({ where: { deletedAt: null } }),
-    semesterResults: await prisma.semesterResult.count(),
-  };
-
-  console.log('\nBidyapith seed complete\n');
-  console.log('Counts');
-  console.log(`  users            ${counts.users}`);
-  console.log(`  departments      ${counts.departments}`);
-  console.log(`  programs         ${counts.programs}`);
-  console.log(`  courses          ${counts.courses}`);
-  console.log(`  semesters        ${counts.semesters}`);
-  console.log(`  offerings        ${counts.offerings}`);
-  console.log(`  enrollments      ${counts.enrollments}`);
-  console.log(`  invoices         ${counts.invoices}`);
-  console.log(`  payments         ${counts.payments}`);
-  console.log(`  exams            ${counts.exams}`);
-  console.log(`  semesterResults  ${counts.semesterResults}`);
-  console.log('\nAdmin');
-  console.log(`  ${ADMIN_EMAIL}  /  ${ADMIN_PASSWORD}`);
-  console.log(`  ${TEST_ADMIN_EMAIL}  /  ${TEST_ADMIN_PASSWORD}  (Postman)`);
-  console.log('\nInstructors  (password Teach1234)');
-  console.log(`  ${requireInstructor(0).email}   Algorithms, CSE-3301`);
-  console.log('\nDemo students  (password Student1234)');
-  console.log(`  ${studentAt(clean).email}   clean record + published transcript`);
-  console.log(`  ${studentAt(hold).email}   unpaid overdue invoice (402 financial hold)`);
-  console.log(`  ${studentAt(lowAttend).email}   attendance < 75% (examEligible false)`);
-  console.log(`  ${studentAt(retake).email}   failed CSE-2201 then retake B (superseded F)`);
-  console.log('\nSemesters');
-  console.log(`  completed     ${completedSemester.name}  ${completedSemester.id}`);
-  console.log(`  retake term   ${retakeSemester.name}  ${retakeSemester.id}`);
-  console.log(`  registration  ${registrationSemester.name}  ${registrationSemester.id}`);
-  console.log(`  upcoming      ${upcomingSemester.name}  ${upcomingSemester.id}`);
-  console.log('\nOfferings for failure demos (paste into Postman collection variables)');
-  console.log(
-    `  fullOfferingId        ${regFull.id}  CSE-1102 A  ${fullSeats.occupied}/${fullSeats.capacity}`,
-  );
-  console.log(
-    `  oneSeatOfferingId     ${regLastSeat.id}  MAT-1101 A  ${lastSeats.occupied}/${lastSeats.capacity}`,
-  );
-  console.log(`  prereqOfferingId      ${reg3301.id}  CSE-3301 (needs CSE-2201)`);
-  console.log(`  conflictOfferingId    ${regConflictB.id}  CSE-3201 Mon 09:00`);
-  console.log(`  enrolledConflictId    ${regConflictA.id}  CSE-2303 Mon 09:00  (student06)`);
-  console.log(`  introOfferingId       ${reg1101.id}  CSE-1101`);
-  console.log(`  openOfferingId        ${reg2201.id}  CSE-2201 (use with student02 for 402)`);
+  console.log('✅ Database Seeding Completed Successfully!');
+  console.log(`- 10 Departments`);
+  console.log(`- 12 Academic Programs`);
+  console.log(`- ${COURSES_DATA.length} Courses`);
+  console.log(`- ${ADMINS_DATA.length} Administrators`);
+  console.log(`- ${INSTRUCTORS_DATA.length} Instructors`);
+  console.log(`- 100 Enrolled Students`);
+  console.log(`\nDemo Credentials:`);
+  console.log(`- Student: student001@bidyapith.edu / Student1234`);
+  console.log(`- Instructor: ayesha.rahman@bidyapith.edu / Teach1234`);
+  console.log(`- Admin: devparvejme@gmail.com / 12345678 (or admin@bidyapith.edu / Admin1234)`);
 }
 
 main()
-  .catch((error: unknown) => {
-    console.error(error);
+  .catch((e) => {
+    console.error('❌ Error during seeding:', e);
     process.exit(1);
   })
   .finally(async () => {
