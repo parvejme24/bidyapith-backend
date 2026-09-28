@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { AdmissionRoutes } from '../modules/admission/admission.route';
 import {
   OfferingAttendanceRoutes,
   StudentAttendanceRoutes,
@@ -56,5 +57,6 @@ router.use('/enrollments', EnrollmentRoutes);
 router.use('/exams', ExamRoutes);
 router.use('/invoices', InvoiceRoutes);
 router.use('/payments', PaymentRoutes);
+router.use('/admissions', AdmissionRoutes);
 
 export const AppRoutes = router;
