@@ -1,10 +1,10 @@
 import type { IAdmissionApplication } from './admission.interface';
 
-export class AdmissionService {
+export const AdmissionService = {
   /**
    * Evaluates admission application eligibility based on prerequisite criteria.
    */
-  public static evaluateApplication(app: Partial<IAdmissionApplication>): {
+  evaluateApplication(app: Partial<IAdmissionApplication>): {
     eligible: boolean;
     recommendedStatus: 'APPROVED' | 'REJECTED' | 'PENDING_REVIEW';
     reason: string;
@@ -17,8 +17,8 @@ export class AdmissionService {
       };
     }
 
-    const gpaNum = parseFloat(app.previousCgpa);
-    if (isNaN(gpaNum) || gpaNum < 3.0) {
+    const gpaNum = Number.parseFloat(app.previousCgpa);
+    if (Number.isNaN(gpaNum) || gpaNum < 3.0) {
       return {
         eligible: false,
         recommendedStatus: 'REJECTED',
@@ -29,7 +29,8 @@ export class AdmissionService {
     return {
       eligible: true,
       recommendedStatus: 'APPROVED',
-      reason: 'Academic prerequisites satisfied. Eligible for admission payment and course enrollment.',
+      reason:
+        'Academic prerequisites satisfied. Eligible for admission payment and course enrollment.',
     };
-  }
-}
+  },
+};
