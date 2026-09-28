@@ -14,6 +14,7 @@ import {
 } from '../modules/exam/exam.route';
 import { InstructorRoutes } from '../modules/instructor/instructor.route';
 import { InvoiceRoutes } from '../modules/invoice/invoice.route';
+import { NotificationRoutes } from '../modules/notification/notification.route';
 import { OfferingRoutes } from '../modules/offering/offering.route';
 import { PaymentRoutes } from '../modules/payment/payment.route';
 import { PrerequisiteRoutes } from '../modules/prerequisite/prerequisite.route';
@@ -33,6 +34,7 @@ const router = Router();
 router.use('/auth', AuthRoutes);
 router.use('/users', UserSelfRoutes);
 router.use('/admin/users', UserAdminRoutes);
+router.use('/notifications', NotificationRoutes);
 router.use('/students', StudentAttendanceRoutes);
 router.use('/students', StudentExamResultRoutes);
 router.use('/students', StudentResultRoutes);
