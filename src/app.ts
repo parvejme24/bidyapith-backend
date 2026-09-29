@@ -50,7 +50,7 @@ app.use(
 );
 app.post(
   '/api/v1/payments/webhook',
-  express.raw({ type: 'application/json' }),
+  express.raw({ type: ['application/json', 'application/x-www-form-urlencoded', 'text/plain', '*/*'] }),
   PaymentController.webhook,
 );
 app.use(express.json({ limit: '10kb' }));

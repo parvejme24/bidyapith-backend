@@ -15,8 +15,8 @@ router.post(
   validateRequest(CourseValidation.create),
   CourseController.create,
 );
-router.get('/', auth, validateRequest(CourseValidation.list), CourseController.list);
-router.get('/:id', auth, validateRequest(CourseValidation.idParam), CourseController.getById);
+router.get('/', validateRequest(CourseValidation.list), CourseController.list);
+router.get('/:id', validateRequest(CourseValidation.idParam), CourseController.getById);
 router.patch(
   '/:id',
   auth,

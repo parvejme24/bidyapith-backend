@@ -16,10 +16,9 @@ router.patch(
   validateRequest(InstructorValidation.updateMe),
   InstructorController.updateMe,
 );
-router.get('/', auth, validateRequest(InstructorValidation.list), InstructorController.list);
+router.get('/', validateRequest(InstructorValidation.list), InstructorController.list);
 router.get(
   '/:id',
-  auth,
   validateRequest(InstructorValidation.idParam),
   InstructorController.getById,
 );

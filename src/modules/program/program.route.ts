@@ -15,10 +15,9 @@ router.post(
   validateRequest(ProgramValidation.create),
   ProgramController.create,
 );
-router.get('/', auth, validateRequest(ProgramValidation.list), ProgramController.list);
+router.get('/', validateRequest(ProgramValidation.list), ProgramController.list);
 router.get(
   '/:id/curriculum',
-  auth,
   validateRequest(ProgramValidation.idParam),
   ProgramController.curriculum,
 );
@@ -43,7 +42,7 @@ router.delete(
   validateRequest(ProgramValidation.courseParam),
   ProgramController.removeCourse,
 );
-router.get('/:id', auth, validateRequest(ProgramValidation.idParam), ProgramController.getById);
+router.get('/:id', validateRequest(ProgramValidation.idParam), ProgramController.getById);
 router.patch(
   '/:id',
   auth,

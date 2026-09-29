@@ -15,9 +15,9 @@ router.post(
   validateRequest(SemesterValidation.create),
   SemesterController.create,
 );
-router.get('/', auth, validateRequest(SemesterValidation.list), SemesterController.list);
-router.get('/current', auth, SemesterController.getCurrent);
-router.get('/:id', auth, validateRequest(SemesterValidation.idParam), SemesterController.getById);
+router.get('/', validateRequest(SemesterValidation.list), SemesterController.list);
+router.get('/current', SemesterController.getCurrent);
+router.get('/:id', validateRequest(SemesterValidation.idParam), SemesterController.getById);
 router.patch(
   '/:id/status',
   auth,

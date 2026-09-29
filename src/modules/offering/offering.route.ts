@@ -15,7 +15,7 @@ router.post(
   validateRequest(OfferingValidation.create),
   OfferingController.create,
 );
-router.get('/', auth, validateRequest(OfferingValidation.list), OfferingController.list);
+router.get('/', validateRequest(OfferingValidation.list), OfferingController.list);
 router.get(
   '/my-teaching',
   auth,
@@ -23,7 +23,7 @@ router.get(
   validateRequest(OfferingValidation.myTeaching),
   OfferingController.listMyTeaching,
 );
-router.get('/:id', auth, validateRequest(OfferingValidation.idParam), OfferingController.getById);
+router.get('/:id', validateRequest(OfferingValidation.idParam), OfferingController.getById);
 router.patch(
   '/:id/instructor',
   auth,
