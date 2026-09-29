@@ -128,4 +128,13 @@ export const NotificationService = {
       createdAt: new Date().toISOString(),
     };
   },
+
+  async getPublicNotices() {
+    const notices = await prisma.notification.findMany({
+      distinct: ['title'],
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    });
+    return notices;
+  },
 };

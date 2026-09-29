@@ -66,8 +66,19 @@ const createBroadcast = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getPublicNotices = catchAsync(async (_req: Request, res: Response) => {
+  const data = await NotificationService.getPublicNotices();
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Public notices retrieved successfully',
+    data,
+  });
+});
+
 export const NotificationController = {
   getMyNotifications,
+  getPublicNotices,
   markAsRead,
   markAllAsRead,
   createBroadcast,

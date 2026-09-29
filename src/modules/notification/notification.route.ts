@@ -6,6 +6,7 @@ import { NotificationController } from './notification.controller';
 
 const router = Router();
 
+router.get('/public', NotificationController.getPublicNotices);
 router.get('/my', auth, NotificationController.getMyNotifications);
 router.get('/', auth, NotificationController.getMyNotifications);
 router.post('/broadcast', auth, authorize(Role.ADMIN), NotificationController.createBroadcast);
