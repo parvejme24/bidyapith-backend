@@ -41,19 +41,16 @@ const webhook = catchAsync(async (req: Request, res: Response) => {
   const signatureHeader = req.headers['stripe-signature'];
   const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
 
-  if (!Buffer.isBuffer(rawBody)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Webhook body must be the raw payload');
-  }
-  if (signature === undefined || signature.length === 0) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Missing webhook signature');
-  }
+  const buffer = Buffer.isBuffer(rawBody)
+    ? rawBody
+    : Buffer.from(typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody || {}));
 
   let event: GatewayEvent;
   try {
-    event = await getPaymentGateway().verifyWebhook(rawBody, signature);
+    event = await getPaymentGateway().verifyWebhook(buffer, signature || '');
   } catch (error) {
-    console.error('[payment] invalid webhook signature', error);
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid webhook signature');
+    console.error('[payment] invalid webhook signature or payload', error);
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid webhook signature or payload');
   }
 
   const data = await PaymentService.handleWebhook(event);

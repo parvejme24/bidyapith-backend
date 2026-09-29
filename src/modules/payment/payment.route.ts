@@ -9,6 +9,7 @@ import { PaymentValidation } from './payment.validation';
 
 const router = Router();
 
+router.post('/webhook', PaymentController.webhook);
 router.post(
   '/initiate',
   auth,
