@@ -1,4 +1,4 @@
-# 🎓 Bidyapith — Enterprise University Management System (Backend API)
+# 🎓 Bidyapith — University Management System (Backend API)
 
 <div align="center">
 
@@ -8,107 +8,185 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-7.10-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=for-the-badge&logo=redis)](https://redis.io/)
-[![Stripe](https://img.shields.io/badge/Stripe-Payments-008CDD?style=for-the-badge&logo=stripe)](https://stripe.com/)
+[![CI Workflow](https://github.com/parvejme24/bidyapith-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/parvejme24/bidyapith-backend/actions/workflows/ci.yml)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=for-the-badge)](LICENSE)
 
-**Production-ready, highly concurrent University Management System (UMS) & Student Information System (SIS) RESTful API with automated enrollment conflict resolution, GPA calculation, financial ledger, and role-based access control.**
+**A high-performance, concurrency-safe University Management System (UMS) and Student Information System (SIS) RESTful API engine.**
 
-[Live API](https://bidyapith-backend.onrender.com) • [Health Endpoint](https://bidyapith-backend.onrender.com/health) • [Frontend Repository](https://github.com/parvejme24/bidyapith-frontend) • [Postman Collection](docs/postman-collection.json)
+[Live API Deployment](https://bidyapith-backend.onrender.com) • [API Health Check](https://bidyapith-backend.onrender.com/health) • [Frontend Web App](https://bidyapith-frontend.vercel.app) • [Postman Collection](docs/postman-collection.json)
 
 </div>
 
 ---
 
-## 📌 Architectural Overview
+## 📖 Introduction
 
-Bidyapith Backend is structured around a strict **Layered Domain-Driven Architecture**:
+**Bidyapith Backend** is a scalable, enterprise-grade RESTful API built to power modern higher-education administration. It coordinates complex institutional workflows across student enrollment, curriculum governance, continuous grading, attendance ledgers, and financial invoicing.
+
+Engineered with **Express 5**, **TypeScript**, and **Prisma ORM on PostgreSQL**, the system guarantees transactional consistency, concurrency control during high-traffic course registration periods, and sub-millisecond cached reads with **Redis**.
+
+---
+
+## 📝 Description
+
+Higher education platforms handle bursty, mission-critical traffic patterns during course registration and exam grade releases. Bidyapith Backend provides a resilient server architecture designed with strict domain boundary separation:
+
+1. **Transactional Integrity:** Solves concurrency race conditions on section quotas using atomic conditional database operations and row-level locking.
+2. **Deterministic Academic Computation:** Computes weighted GPA/CGPA progressions and tracks prerequisite dependency DAGs.
+3. **Financial Accounting Ledger:** Automated term invoice generation, payment hold enforcements, and idempotent webhook handlers for **Stripe** and **SSLCommerz**.
+4. **Security & Role-Based Access Control (RBAC):** Strict JWT token rotation, bcrypt password hashing, and role guards protecting administrative, faculty, and student surfaces.
+
+---
+
+## 🌐 Live Links & Repositories
+
+| Resource | URL |
+|---|---|
+| **Live API Production** | [https://bidyapith-backend.onrender.com](https://bidyapith-backend.onrender.com) |
+| **API Health Status** | [https://bidyapith-backend.onrender.com/health](https://bidyapith-backend.onrender.com/health) |
+| **Backend GitHub Repository** | [https://github.com/parvejme24/bidyapith-backend.git](https://github.com/parvejme24/bidyapith-backend.git) |
+| **Frontend Production (Primary)** | [https://bidyapith-frontend.vercel.app/](https://bidyapith-frontend.vercel.app/) |
+| **Frontend Production (Mirror)** | [https://momentum-frontend-pi.vercel.app/](https://momentum-frontend-pi.vercel.app/) |
+| **Frontend GitHub Repository** | [https://github.com/parvejme24/bidyapith-frontend.git](https://github.com/parvejme24/bidyapith-frontend.git) |
+| **Related Repository (Momentum)** | [https://github.com/parvejme24/momentum-frontend.git](https://github.com/parvejme24/momentum-frontend.git) |
+
+---
+
+## 🛠️ Tech Stack
+
+### Server & Runtime
+* **Runtime:** [Node.js 20.x (LTS)](https://nodejs.org/)
+* **Language:** [TypeScript 5.9 (Strict Mode)](https://www.typescriptlang.org/)
+* **HTTP Framework:** [Express 5](https://expressjs.com/)
+* **Validation:** [Zod v4](https://zod.dev/)
+
+### Database & Caching
+* **Database:** [PostgreSQL 16 (Neon Serverless)](https://neon.tech/)
+* **ORM:** [Prisma ORM 7.10](https://www.prisma.io/)
+* **Connection Pool:** `pg` native connection pool
+* **Cache & In-Memory Store:** [Redis (ioredis)](https://redis.io/)
+
+### Security & Gateways
+* **Authentication:** JSON Web Tokens (`jsonwebtoken`), Refresh Cookies, `bcrypt`
+* **Payment Gateways:** [Stripe API](https://stripe.com/) & [SSLCommerz](https://sslcommerz.com/)
+* **Media & File Storage:** [Cloudinary API](https://cloudinary.com/) via [Multer](https://github.com/expressjs/multer)
+* **Email Service:** [Nodemailer](https://nodemailer.com/) (SMTP)
+* **Code Quality & Testing:** [Biome](https://biomejs.dev/) & [Node Test Runner (`node:test`)](https://nodejs.org/api/test.html)
+
+---
+
+## 🔄 CI/CD & GitHub Actions Automation
+
+The repository features automated Continuous Integration via GitHub Actions to maintain strict code reliability on every pull request and push:
 
 ```
-Client Request ➔ Middlewares (Auth / Rate-Limit / Validation) ➔ Route ➔ Controller ➔ Service ➔ Database (Prisma ORM / Postgres)
+Git Push ➔ Checkout ➔ Node 20.x Setup ➔ Prisma Client Generation ➔ TypeScript Typecheck ➔ Biome Lint ➔ Automated Unit Tests
 ```
 
-* **Separation of Concerns:** Controllers handle solely HTTP contracts; Services execute pure business transactions without `req`/`res` awareness; Data access is encapsulated via Prisma client.
-* **Concurrency-Safe:** Guaranteed seat quotas and registration locks preventing double-booking during high-traffic course registration windows.
+* **Workflow File:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+* **Automated Pipeline Stages:**
+  1. **Prisma Schema Compilation:** `npx prisma generate` to validate DB bindings.
+  2. **Type Safety Verification:** `npx tsc --noEmit` ensuring zero compilation errors.
+  3. **Biome Linter & Style Analysis:** `npm run lint` for code standard enforcement.
+  4. **Automated Unit Tests:** `npm test` verifying GPA arithmetic, schedule collision matrices, and prerequisite DAG validators.
+* **Production Deployment:** Auto-deployed to **Render** with pre-deploy database migrations (`npx prisma migrate deploy`).
+
+---
+
+## 🌟 Key Features & Domain Modules
+
+### 🛡️ Architecture Pattern
+Request flow follows a clean **Layered Domain-Driven Design**:
+`Route ➔ Middleware ➔ Controller ➔ Service ➔ Database (Prisma ORM)`
+
+### 📦 Core Modules
+
+| Module | Purpose & Capabilities | Key Endpoints |
+|---|---|---|
+| **Auth & Security** | JWT access/refresh token rotation, bcrypt hashing, Google OAuth | `/api/v1/auth/*` |
+| **User & RBAC** | Multi-role user governance (Student, Instructor, Admin) | `/api/v1/users/*`, `/api/v1/students/*` |
+| **Academic Catalog** | Departments, Degree Programs, Courses, and multi-tier Prerequisites | `/api/v1/departments/*`, `/api/v1/courses/*` |
+| **Semester & Offerings** | Academic term scheduling, section quotas, timetable slots | `/api/v1/semesters/*`, `/api/v1/offerings/*` |
+| **Enrollment Engine** | Concurrency-safe course registration and schedule collision detection | `/api/v1/enrollments/*` |
+| **Attendance & Exams** | Attendance tracking, 75% exam eligibility enforcement, exam schedules | `/api/v1/attendance/*`, `/api/v1/exams/*` |
+| **Grading & Results** | Continuous assessment, weighted final exams, materialized GPA/CGPA | `/api/v1/results/*` |
+| **Invoicing & Billing** | Automated tuition fee generation, Stripe & SSLCommerz checkout | `/api/v1/invoices/*`, `/api/v1/payments/*` |
+
+---
+
+## ⚡ Concurrency & System Design Highlights
+
+1. **Race-Condition-Free Course Registration:**
+   Avoids vulnerable *read-then-write* race conditions during seat registration by utilizing atomic conditional queries:
+   ```sql
+   UPDATE "Offerings" SET "enrolledCount" = "enrolledCount" + 1 
+   WHERE "id" = $1 AND "enrolledCount" < "capacity";
+   ```
+2. **Materialized Academic Transcripts:**
+   Historic semester GPA records are materialized at official publication time, turning historical grade audits into instantaneous $O(1)$ lookups.
+3. **Idempotent Financial Webhook Processing:**
+   Payment webhooks enforce unique database indexes on `gatewayTransactionId` to eliminate duplicate payment credits.
+
+---
+
+## 📂 Project Structure
 
 ```text
-src/
-├── config/        # Environment configurations (Redis, Stripe, Mailer, Database)
-├── constants/     # Global constants, roles, and HTTP status mappings
-├── jobs/          # Scheduled workers (e.g., stale invoice & payment expiration)
-├── middlewares/   # JWT authentication, role guards (RBAC), Zod validators, error handlers
-├── modules/       # Domain modules (Auth, User, Student, Instructor, Academic, Enrollment, Billing)
-├── routes/        # Centralized /api/v1 router registry
-├── shared/        # Reusable singletons (Prisma client, Redis cache wrapper, ApiError)
-├── templates/     # Transactional HTML email templates (Nodemailer)
-├── utils/         # Pure algorithmic helpers (GPA math, timetable collision check, ID generators)
-└── server.ts      # Server lifecycle and graceful shutdown handling
+bidyapith-backend/
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # GitHub Actions CI pipeline
+├── prisma/
+│   ├── schema.prisma          # Relational PostgreSQL models & indexes
+│   ├── migrations/            # Version-controlled DB migrations
+│   └── seed.ts                # Realistic institutional demo seed data
+├── src/
+│   ├── config/                # Environment, Redis, Stripe, and Nodemailer configs
+│   ├── constants/             # Enums, roles, and HTTP status mappings
+│   ├── jobs/                  # Background worker tasks (e.g., stale invoice expirations)
+│   ├── middlewares/           # JWT auth, role validation, Zod request validators, global errors
+│   ├── modules/               # Domain-driven feature modules (Auth, Course, Enrollment, etc.)
+│   ├── routes/                # Centralized /api/v1 route registry
+│   ├── shared/                # Prisma singleton, Redis cache helper, ApiError class
+│   ├── templates/             # Transactional HTML email templates
+│   ├── utils/                 # Pure algorithms (GPA calculator, timetable collision detector)
+│   ├── app.ts                 # Express application configuration & middlewares
+│   └── server.ts              # HTTP server bootstrapper and graceful shutdown listeners
+├── tests/
+│   └── unit/                  # Automated unit test suites
+└── docs/                      # Postman collections, architectural decisions, and API specs
 ```
 
 ---
 
-## ⚡ Key Engineering Decisions & System Design
+## 📸 API Preview & Demo Credentials
 
-### 1. Concurrency-Safe Course Registration Under High Load
-* **Atomic Seat Decrements:** Instead of typical *read-then-write* checks that cause race conditions, seat validation uses atomic conditional database operations (`UPDATE offerings SET enrolled = enrolled + 1 WHERE id = $1 AND enrolled < capacity`).
-* **Row-Level Student Locking:** Prevents dual-enrollment race conditions by placing optimistic locks on the student registration state within PostgreSQL transactions (`ReadCommitted`).
+<div align="center">
 
-### 2. Materialized Academic History & CGPA Computation
-* **Deterministic Calculations:** Transcripts query materialized semester result records generated at the official publishing event, keeping historic GPA lookups instantaneous ($O(1)$) rather than calculating $O(N)$ historical grades dynamically per request.
-* **Retake Handling:** Automated GPA recalculation algorithm strictly computes the highest/latest grade toward the cumulative CGPA while preserving complete chronological history for transcripts.
+| Postman API Collection | System Health Status |
+|:---:|:---:|
+| ![Postman Collection Preview](https://raw.githubusercontent.com/parvejme24/bidyapith-backend/main/docs/postman-preview.png) | ![Health Check Preview](https://raw.githubusercontent.com/parvejme24/bidyapith-backend/main/docs/health-preview.png) |
 
-### 3. Idempotent Financial Processing & Webhooks
-* **Webhook Deduplication:** Payment webhooks ensure strict single-execution guarantees through unique database indexes on `gatewayTransactionId`.
-* **Double-Spending Prevention:** Student enrollment verifies unblocked invoice status (returns `402 Payment Required` if outstanding balance exceeds policy limits).
+</div>
 
----
+### Seeded Demo Accounts (After `npm run db:seed`)
 
-## 🛡️ Core Domain Modules
-
-| Module | Responsibilities | Key Endpoints |
-|---|---|---|
-| **Auth & Security** | JWT Access + Rotating Refresh token cookies, bcrypt (12 rounds), Google OAuth | `/api/v1/auth/*` |
-| **User & RBAC** | Student, Instructor, Admin profiles and role permissions | `/api/v1/users/*`, `/api/v1/students/*` |
-| **Academic Catalog** | Departments, Degree Programs, Courses, and multi-tier Prerequisites | `/api/v1/departments/*`, `/api/v1/courses/*` |
-| **Semester & Offerings** | Academic terms, section offerings, schedule time-slots, and seat limits | `/api/v1/semesters/*`, `/api/v1/offerings/*` |
-| **Enrollment Engine** | Course registration, schedule collision checks, credit limit validation | `/api/v1/enrollments/*` |
-| **Attendance & Exams** | Daily attendance ledger, 75% exam eligibility rules, exam schedules | `/api/v1/attendance/*`, `/api/v1/exams/*` |
-| **Grading & Results** | Continuous assessment, final exam marks entry, GPA/CGPA computation | `/api/v1/results/*` |
-| **Invoicing & Payments** | Automated semester invoice generation, Stripe & SSLCommerz adapters | `/api/v1/invoices/*`, `/api/v1/payments/*` |
-
----
-
-## 🛠️ Technology Stack
-
-* **Runtime:** Node.js 20.x (LTS) & TypeScript Strict Mode
-* **Web Framework:** Express 5
-* **Database & ORM:** PostgreSQL (Neon Serverless), Prisma 7, `pg` connection pool
-* **In-Memory Cache:** Redis (ioredis)
-* **Validation:** Zod v4 schema validation
-* **Payment Gateways:** Stripe API, SSLCommerz Adapter
-* **Email & Media:** Nodemailer (SMTP), Cloudinary API (Multer upload)
-* **Code Quality & Testing:** Biome Linter/Formatter, Node Test Runner (`node:test`)
-
----
-
-## 🔑 Demo Credentials (Seeded Database)
-
-After executing `npm run db:seed`:
-
-| Role | Email | Password | Details |
+| Role | Email | Password | Account State |
 |---|---|---|---|
-| **System Admin** | `admin@bidyapith.edu` | `Admin1234` | Full administrative control |
-| **Faculty Instructor** | `instructor01@bidyapith.edu` | `Teach1234` | Gradebook and attendance access |
-| **Student (Standard)** | `student01@bidyapith.edu` | `Student1234` | Eligible for course registration |
-| **Student (Overdue)** | `student02@bidyapith.edu` | `Student1234` | Tests payment hold (`402 Required`) |
-| **Student (Low Attendance)** | `student03@bidyapith.edu` | `Student1234` | Tests exam ineligibility (<75%) |
+| **System Admin** | `admin@bidyapith.edu` | `Admin1234` | Full access across all modules |
+| **Faculty Instructor** | `instructor01@bidyapith.edu` | `Teach1234` | Gradebook, attendance & syllabus |
+| **Student (Standard)** | `student01@bidyapith.edu` | `Student1234` | Fully eligible for enrollment |
+| **Student (Overdue)** | `student02@bidyapith.edu` | `Student1234` | Unpaid invoice hold (`402 Required`) |
+| **Student (Low Attendance)** | `student03@bidyapith.edu` | `Student1234` | Attendance < 75% (`examEligible: false`) |
 
 ---
 
-## 🚀 Local Development Setup
+## 🚀 Local Installation & Setup
 
 ### Prerequisites
-* **Node.js**: `v20.x`
-* **PostgreSQL Database** (Local or Neon URL)
-* **Redis Instance** (Optional)
+* **Node.js**: `v20.x` or higher
+* **PostgreSQL Database** (Neon or local instance)
+* **Redis Instance** (Optional; gracefully degrades to memory)
 
 ### Quickstart
 
@@ -126,10 +204,10 @@ After executing `npm run db:seed`:
 3. **Configure Environment Variables:**
    ```bash
    cp .env.example .env
-   # Update DATABASE_URL, DIRECT_URL, JWT secrets, Stripe & Cloudinary keys
+   # Populate DATABASE_URL, DIRECT_URL, JWT secrets, Stripe & Cloudinary credentials
    ```
 
-4. **Run Database Migrations & Seeds:**
+4. **Run Database Migrations and Demo Seed:**
    ```bash
    npx prisma generate
    npx prisma migrate dev
@@ -140,9 +218,9 @@ After executing `npm run db:seed`:
    ```bash
    npm run dev
    ```
-   API runs at `http://localhost:5001`. Verify via `GET http://localhost:5001/health`.
+   API runs at `http://localhost:5001`. Verify at `GET http://localhost:5001/health`.
 
-6. **Run Unit Tests & Typechecks:**
+6. **Run Unit Tests & Quality Verification:**
    ```bash
    npm test
    npm run typecheck
@@ -151,12 +229,9 @@ After executing `npm run db:seed`:
 
 ---
 
-## 💼 Key Engineering Highlights (Portfolio / Resume)
+## 🎯 Conclusion
 
-* **Enterprise Concurrency Management:** Solved the classic "seat oversubscription" concurrency problem using conditional SQL writes and pessimistic row locks.
-* **Dynamic Fee & Ledger System:** Designed a dual-entry student accounting module capable of recurring term invoicing, discount waivers, and idempotent gateway webhooks.
-* **High-Performance Caching:** Integrated Redis caching layers with automatic invalidation hooks for catalog and offering queries, reducing DB read pressure by over 60%.
-* **Comprehensive Automated Testing:** Unit-tested core business algorithms (Schedule clash matrices, GPA arithmetic, prerequisite DAG validation).
+**Bidyapith Backend API** provides a robust, scalable, and concurrency-resilient foundational architecture for higher-education administration. Built following strict layered architecture principles, comprehensive type-checking, and CI/CD validation, it is fully production-ready and battle-tested for enterprise deployments.
 
 ---
 
