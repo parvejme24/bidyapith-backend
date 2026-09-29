@@ -54,24 +54,22 @@ Higher education platforms handle bursty, mission-critical traffic patterns duri
 
 ## 🛠️ Tech Stack
 
-### Server & Runtime
-* **Runtime:** [Node.js 20.x (LTS)](https://nodejs.org/)
-* **Language:** [TypeScript 5.9 (Strict Mode)](https://www.typescriptlang.org/)
-* **HTTP Framework:** [Express 5](https://expressjs.com/)
-* **Validation:** [Zod v4](https://zod.dev/)
-
-### Database & Caching
-* **Database:** [PostgreSQL 16 (Neon Serverless)](https://neon.tech/)
-* **ORM:** [Prisma ORM 7.10](https://www.prisma.io/)
-* **Connection Pool:** `pg` native connection pool
-* **Cache & In-Memory Store:** [Redis (ioredis)](https://redis.io/)
-
-### Security & Gateways
-* **Authentication:** JSON Web Tokens (`jsonwebtoken`), Refresh Cookies, `bcrypt`
-* **Payment Gateways:** [Stripe API](https://stripe.com/) & [SSLCommerz](https://sslcommerz.com/)
-* **Media & File Storage:** [Cloudinary API](https://cloudinary.com/) via [Multer](https://github.com/expressjs/multer)
-* **Email Service:** [Nodemailer](https://nodemailer.com/) (SMTP)
-* **Code Quality & Testing:** [Biome](https://biomejs.dev/) & [Node Test Runner (`node:test`)](https://nodejs.org/api/test.html)
+| Category | Technology | Version | Purpose / Use Case |
+|---|---|---|---|
+| **Runtime Environment** | [Node.js](https://nodejs.org/) | `20.x (LTS)` | High-performance asynchronous JavaScript runtime |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) | `5.9.3` | Strict static typing, interfaces, and compile-time validation |
+| **HTTP Framework** | [Express](https://expressjs.com/) | `5.2.1` | RESTful routing, middleware pipeline, and controller architecture |
+| **Database** | [PostgreSQL (Neon Serverless)](https://neon.tech/) | `16.x` | Relational transactional database with ACID guarantees |
+| **ORM & Query Builder** | [Prisma ORM](https://www.prisma.io/) | `7.10.0` | Type-safe database queries, schema migrations, and connection pooling |
+| **Caching & In-Memory Store** | [Redis (ioredis)](https://redis.io/) | `6.0.0` | Fast catalog caching and session acceleration |
+| **Request Validation** | [Zod](https://zod.dev/) | `4.5.4` | Strict runtime schema parsing and error serialization |
+| **Authentication & Hashing** | [JSON Web Tokens (JWT)](https://jwt.io/) & [bcrypt](https://www.npmjs.com/package/bcrypt) | `9.0.3` / `6.0.0` | Access/Refresh token rotation, password hashing (12 rounds) |
+| **Payment Gateways** | [Stripe](https://stripe.com/) & [SSLCommerz](https://sslcommerz.com/) | `22.6.1` | Multi-gateway billing, invoices, and idempotent webhooks |
+| **Media & File Storage** | [Cloudinary](https://cloudinary.com/) + [Multer](https://github.com/expressjs/multer) | `2.11.0` | Profile avatars, syllabus documents, and transcript uploads |
+| **Transactional Email** | [Nodemailer](https://nodemailer.com/) | `9.1.1` | HTML email dispatching for admissions and password recovery |
+| **Security & Middleware** | [Helmet](https://helmetjs.github.io/) & [express-rate-limit](https://www.npmjs.com/package/express-rate-limit) | `8.3.0` / `8.7.0` | HTTP header hardening, DDoS mitigation, and rate limiting |
+| **Linter & Formatter** | [Biome](https://biomejs.dev/) | `2.5.11` | Ultra-fast TypeScript linting and static code analysis |
+| **Test Runner** | [Node Test Runner (`node:test`)](https://nodejs.org/api/test.html) | Native | Automated unit tests for GPA arithmetic and schedule collision |
 
 ---
 
