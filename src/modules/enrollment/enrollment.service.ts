@@ -924,11 +924,31 @@ const listRoster = async (offeringId: string, query: IRosterQuery) => {
         id: true,
         status: true,
         enrolledAt: true,
+        examEligible: true,
+        totalMarks: true,
+        letterGrade: true,
+        gradePoint: true,
         student: {
           select: {
+            id: true,
             studentId: true,
-            user: { select: { firstName: true, lastName: true } },
+            batch: true,
+            cgpa: true,
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+            program: { select: { name: true, code: true } },
           },
+        },
+        attendances: {
+          select: { date: true, status: true },
+          orderBy: { date: 'desc' as const },
+          take: 30,
         },
       },
       skip: pagination.skip,
@@ -944,14 +964,41 @@ const listRoster = async (offeringId: string, query: IRosterQuery) => {
       section: offering.section,
       course: { ...offering.course, credits: credits(offering.course.credits) },
     },
-    data: data.map((row) => ({
-      enrollmentId: row.id,
-      status: row.status,
-      enrolledAt: row.enrolledAt.toISOString(),
-      studentId: row.student.studentId,
-      firstName: row.student.user.firstName,
-      lastName: row.student.user.lastName,
-    })),
+    data: data.map((row) => {
+      const totalAtt = row.attendances.length;
+      const presentAtt = row.attendances.filter((a) => a.status === 'PRESENT').length;
+      const lateAtt = row.attendances.filter((a) => a.status === 'LATE').length;
+      const attendancePct =
+        totalAtt > 0 ? Math.round(((presentAtt + lateAtt * 0.5) / totalAtt) * 100) : 100;
+
+      return {
+        enrollmentId: row.id,
+        status: row.status,
+        enrolledAt: row.enrolledAt.toISOString(),
+        examEligible: row.examEligible,
+        totalMarks: row.totalMarks ? row.totalMarks.toFixed(2) : null,
+        letterGrade: row.letterGrade ?? null,
+        gradePoint: row.gradePoint ? row.gradePoint.toFixed(2) : null,
+        attendancePct,
+        student: {
+          id: row.student.id,
+          studentId: row.student.studentId,
+          batch: row.student.batch,
+          cgpa: row.student.cgpa ? row.student.cgpa.toFixed(2) : '0.00',
+          program: row.student.program?.name ?? 'N/A',
+          user: {
+            firstName: row.student.user.firstName,
+            lastName: row.student.user.lastName,
+            email: row.student.user.email,
+            avatarUrl: row.student.user.avatarUrl ?? null,
+          },
+        },
+        recentAttendance: row.attendances.slice(0, 10).map((a) => ({
+          date: a.date.toISOString().slice(0, 10),
+          status: a.status,
+        })),
+      };
+    }),
     meta: paginationMeta(pagination.page, pagination.limit, total),
   };
 };

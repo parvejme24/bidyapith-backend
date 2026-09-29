@@ -184,7 +184,7 @@ const COURSES_DATA = [
 ];
 
 const INSTRUCTORS_DATA = [
-  { email: 'ayesha.rahman@bidyapith.edu', first: 'Ayesha', last: 'Rahman', dept: 'CSE', des: Designation.PROFESSOR, spec: 'Distributed Systems & Cloud Computing', phone: '+8801711223344' },
+  { email: 'ayesha.rahman@bidyapith.edu', first: 'Ayesha', last: 'Rahman', dept: 'CSE', des: Designation.PROFESSOR, spec: 'Distributed Systems & Cloud Computing', phone: '+880 1700-000000' },
   { email: 'tanvir.ahmed@bidyapith.edu', first: 'Tanvir', last: 'Ahmed', dept: 'CSE', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Database Systems & Big Data', phone: '+8801711223345' },
   { email: 'nafisa.haque@bidyapith.edu', first: 'Nafisa', last: 'Haque', dept: 'CSE', des: Designation.ASSISTANT_PROFESSOR, spec: 'Machine Learning & NLP', phone: '+8801711223346' },
   { email: 'sabbir.rahman@bidyapith.edu', first: 'Sabbir', last: 'Rahman', dept: 'CSE', des: Designation.ASSISTANT_PROFESSOR, spec: 'Operating Systems & Networks', phone: '+8801711223347' },
@@ -453,25 +453,40 @@ async function main(): Promise<void> {
   });
 
   // 7. Seed Course Offerings
-  console.log('🏛️ Seeding Course Offerings...');
-  const offeringList: { id: string; courseId: string }[] = [];
+  console.log('🏛️ Seeding Course Offerings (Assigning sections to Prof. Dr. Ayesha Rahman and other faculty)...');
+  const offeringList: { id: string; courseId: string; instructorId: string }[] = [];
+  const ayeshaOfferings: { id: string; courseCode: string; section: string }[] = [];
+
   const sampleOfferings = [
+    // --- Dr. Ayesha Rahman (insIdx: 0) Course Sections ---
     { code: 'CSE-1101', sec: 'A', room: 'AB2-401', insIdx: 0, day: DayOfWeek.SUNDAY, start: '09:00', end: '10:30' },
+    { code: 'CSE-1101', sec: 'B', room: 'AB2-402', insIdx: 0, day: DayOfWeek.MONDAY, start: '11:00', end: '12:30' },
+    { code: 'CSE-1102', sec: 'A', room: 'LAB-301', insIdx: 0, day: DayOfWeek.SUNDAY, start: '14:00', end: '17:00' },
+    { code: 'CSE-2202', sec: 'A', room: 'AB2-405', insIdx: 0, day: DayOfWeek.TUESDAY, start: '13:00', end: '14:30' },
+    { code: 'CSE-3303', sec: 'A', room: 'AB2-502', insIdx: 0, day: DayOfWeek.SUNDAY, start: '11:00', end: '12:30' },
+    { code: 'CSE-4108', sec: 'A', room: 'AB3-208', insIdx: 0, day: DayOfWeek.MONDAY, start: '14:00', end: '15:30' },
+
+    // --- Other Faculty Course Sections ---
     { code: 'CSE-2201', sec: 'A', room: 'AB2-402', insIdx: 4, day: DayOfWeek.MONDAY, start: '10:30', end: '12:00' },
     { code: 'CSE-2303', sec: 'A', room: 'AB2-305', insIdx: 1, day: DayOfWeek.TUESDAY, start: '09:00', end: '10:30' },
-    { code: 'CSE-3303', sec: 'A', room: 'AB2-306', insIdx: 3, day: DayOfWeek.WEDNESDAY, start: '11:00', end: '12:30' },
-    { code: 'CSE-4108', sec: 'A', room: 'AB3-208', insIdx: 2, day: DayOfWeek.THURSDAY, start: '14:00', end: '15:30' },
+    { code: 'CSE-3201', sec: 'A', room: 'AB2-306', insIdx: 5, day: DayOfWeek.WEDNESDAY, start: '11:00', end: '12:30' },
     { code: 'EEE-1101', sec: 'A', room: 'AB1-201', insIdx: 6, day: DayOfWeek.SUNDAY, start: '11:00', end: '12:30' },
     { code: 'MAT-1101', sec: 'A', room: 'AB1-112', insIdx: 14, day: DayOfWeek.MONDAY, start: '13:00', end: '14:30' },
     { code: 'MAT-2101', sec: 'A', room: 'AB1-114', insIdx: 15, day: DayOfWeek.TUESDAY, start: '14:30', end: '16:00' },
     { code: 'BBA-1101', sec: 'A', room: 'AB4-101', insIdx: 11, day: DayOfWeek.WEDNESDAY, start: '09:30', end: '11:00' },
     { code: 'ENG-1101', sec: 'A', room: 'AB4-202', insIdx: 19, day: DayOfWeek.THURSDAY, start: '10:00', end: '11:30' },
+    { code: 'LAW-1101', sec: 'A', room: 'AB3-102', insIdx: 21, day: DayOfWeek.SUNDAY, start: '13:00', end: '14:30' },
+    { code: 'PHA-1101', sec: 'A', room: 'PHA-201', insIdx: 23, day: DayOfWeek.TUESDAY, start: '10:00', end: '11:30' },
+    { code: 'ECO-1101', sec: 'A', room: 'AB4-301', insIdx: 24, day: DayOfWeek.WEDNESDAY, start: '13:30', end: '15:00' },
   ];
 
   for (const o of sampleOfferings) {
     const cId = courseMap.get(o.code);
     if (!cId) continue;
-    const instructorId = instructorIds[o.insIdx] || instructorIds[0];
+    const instructorId = instructorIds[o.insIdx] ?? instructorIds[0];
+    if (instructorId === undefined) {
+      throw new Error('No instructors were seeded for course offerings');
+    }
     const offering = await prisma.courseOffering.upsert({
       where: {
         courseId_semesterId_section: {
@@ -499,7 +514,10 @@ async function main(): Promise<void> {
         room: o.room,
       },
     });
-    offeringList.push({ id: offering.id, courseId: cId });
+    offeringList.push({ id: offering.id, courseId: cId, instructorId });
+    if (o.insIdx === 0) {
+      ayeshaOfferings.push({ id: offering.id, courseCode: o.code, section: o.sec });
+    }
 
     await prisma.classSchedule.upsert({
       where: {
@@ -522,7 +540,7 @@ async function main(): Promise<void> {
 
   // 8. Seed 100 Students!
   console.log('🎒 Seeding 100 Students with realistic profiles and photos...');
-  const studentProfiles: { id: string; userId: string }[] = [];
+  const studentProfiles: { id: string; userId: string; firstName: string; lastName: string }[] = [];
   const programCodes = ['BSC-CSE', 'BSC-EEE', 'BSC-CIV', 'BBA-GEN', 'BSC-MAT', 'BSC-PHY', 'BA-ENG', 'LLB-HON', 'BPH-PRO', 'BSS-ECO'];
   const batches = ['2023', '2024', '2025', '2026'];
   const cities = ['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Cumilla', 'Gazipur', 'Narayanganj'];
@@ -597,65 +615,163 @@ async function main(): Promise<void> {
         status: StudentStatus.ACTIVE,
       },
     });
-    studentProfiles.push({ id: studentProf.id, userId: user.id });
+    studentProfiles.push({ id: studentProf.id, userId: user.id, firstName, lastName });
+  }
 
-    // Also add primary demo student "student01@bidyapith.edu" enrollments & invoices
-    if (i <= 30 && offeringList.length > 0) {
-      const off = offeringList[(i - 1) % offeringList.length]!;
+  // 9. Enroll Students into Dr. Ayesha Rahman's Sections & populate Attendance + Grades
+  console.log("📝 Enrolling students, attendance records, and grades for Dr. Ayesha Rahman's courses...");
+  const attendanceDates = [
+    new Date('2026-09-01'),
+    new Date('2026-09-03'),
+    new Date('2026-09-08'),
+    new Date('2026-09-10'),
+    new Date('2026-09-15'),
+    new Date('2026-09-17'),
+    new Date('2026-09-22'),
+    new Date('2026-09-24'),
+    new Date('2026-09-28'),
+    new Date('2026-09-29'),
+  ];
+
+  const attendanceRows: { enrollmentId: string; date: Date; status: AttendanceStatus }[] = [];
+
+  for (const [offIdx, aOff] of ayeshaOfferings.entries()) {
+    // Assign 22 students to this section
+    const startIdx = (offIdx * 15) % (studentProfiles.length - 25);
+    const enrolledStudents = studentProfiles.slice(startIdx, startIdx + 22);
+
+    for (const [sIdx, sp] of enrolledStudents.entries()) {
+      const midterm = 18 + ((sIdx * 7) % 8); // 18-25
+      const final = 35 + ((sIdx * 11) % 15); // 35-49
+      const assignment = 15 + ((sIdx * 3) % 6); // 15-20
+      const total = midterm + final + assignment;
+      const letterGrade: LetterGrade =
+        total >= 80 ? LetterGrade.A_PLUS : total >= 75 ? LetterGrade.A : total >= 70 ? LetterGrade.A_MINUS : LetterGrade.B_PLUS;
+      const gradePoint = total >= 80 ? '4.00' : total >= 75 ? '3.75' : total >= 70 ? '3.50' : '3.25';
+
       const enrollment = await prisma.enrollment.upsert({
-        where: { studentId_offeringId: { studentId: studentProf.id, offeringId: off.id } },
+        where: { studentId_offeringId: { studentId: sp.id, offeringId: aOff.id } },
         update: {
           status: EnrollmentStatus.ENROLLED,
           examEligible: true,
+          totalMarks: new Prisma.Decimal(total.toFixed(2)),
+          letterGrade,
+          gradePoint: new Prisma.Decimal(gradePoint),
+          gradedAt: new Date('2026-09-28'),
         },
         create: {
-          studentId: studentProf.id,
-          offeringId: off.id,
+          studentId: sp.id,
+          offeringId: aOff.id,
           status: EnrollmentStatus.ENROLLED,
           examEligible: true,
+          totalMarks: new Prisma.Decimal(total.toFixed(2)),
+          letterGrade,
+          gradePoint: new Prisma.Decimal(gradePoint),
+          gradedAt: new Date('2026-09-28'),
         },
       });
 
-      // Seed attendance
-      await prisma.attendance.upsert({
-        where: { enrollmentId_date: { enrollmentId: enrollment.id, date: new Date('2026-09-22') } },
-        update: { status: AttendanceStatus.PRESENT },
-        create: {
+      // Prepare attendance for each date
+      for (const [dIdx, attDate] of attendanceDates.entries()) {
+        const statusVal =
+          (sIdx + dIdx) % 11 === 0
+            ? AttendanceStatus.ABSENT
+            : (sIdx + dIdx) % 7 === 0
+              ? AttendanceStatus.LATE
+              : AttendanceStatus.PRESENT;
+
+        attendanceRows.push({
           enrollmentId: enrollment.id,
-          date: new Date('2026-09-22'),
-          status: AttendanceStatus.PRESENT,
-        },
-      });
-    }
-
-    // Seed Invoice
-    if (i <= 40) {
-      const invNum = `INV-2026-${String(1000 + i)}`;
-      await prisma.feeInvoice.upsert({
-        where: { invoiceNumber: invNum },
-        update: {
-          studentId: studentProf.id,
-          semesterId: currentSemester.id,
-          type: InvoiceType.TUITION,
-          status: i % 2 === 0 ? InvoiceStatus.PAID : InvoiceStatus.UNPAID,
-          totalAmount: new Prisma.Decimal('45000.00'),
-          paidAmount: i % 2 === 0 ? new Prisma.Decimal('45000.00') : new Prisma.Decimal('0.00'),
-          dueDate: addDays(now, 20),
-          deletedAt: null,
-        },
-        create: {
-          invoiceNumber: invNum,
-          studentId: studentProf.id,
-          semesterId: currentSemester.id,
-          type: InvoiceType.TUITION,
-          status: i % 2 === 0 ? InvoiceStatus.PAID : InvoiceStatus.UNPAID,
-          totalAmount: new Prisma.Decimal('45000.00'),
-          paidAmount: i % 2 === 0 ? new Prisma.Decimal('45000.00') : new Prisma.Decimal('0.00'),
-          dueDate: addDays(now, 20),
-        },
-      });
+          date: attDate,
+          status: statusVal,
+        });
+      }
     }
   }
+
+  console.log(`⚡ Inserting ${attendanceRows.length} attendance records in bulk...`);
+  await prisma.attendance.createMany({
+    data: attendanceRows,
+    skipDuplicates: true,
+  });
+
+  // 10. Seed Exams for Dr. Ayesha Rahman's Course Offerings (Grading Assessments)
+  console.log("📝 Creating exam assessments for Dr. Ayesha Rahman's course offerings...");
+  const existingExamTypes = new Set(
+    (
+      await prisma.exam.findMany({
+        where: {
+          offeringId: { in: ayeshaOfferings.map((offering) => offering.id) },
+          deletedAt: null,
+        },
+        select: { offeringId: true, type: true },
+      })
+    ).map((exam) => `${exam.offeringId}:${exam.type}`),
+  );
+  const examRows: Prisma.ExamCreateManyInput[] = [];
+  for (const aOff of ayeshaOfferings) {
+    const assessments: Prisma.ExamCreateManyInput[] = [
+      {
+        offeringId: aOff.id,
+        type: ExamType.MIDTERM,
+        title: 'Midterm Examination',
+        totalMarks: new Prisma.Decimal('30.00'),
+        weight: new Prisma.Decimal('30.00'),
+        examDate: new Date('2026-10-15'),
+        isPublished: true,
+      },
+      {
+        offeringId: aOff.id,
+        type: ExamType.ASSIGNMENT,
+        title: 'Continuous Assessment & Lab Assignments',
+        totalMarks: new Prisma.Decimal('20.00'),
+        weight: new Prisma.Decimal('20.00'),
+        examDate: new Date('2026-10-25'),
+        isPublished: true,
+      },
+      {
+        offeringId: aOff.id,
+        type: ExamType.FINAL,
+        title: 'Semester Final Examination',
+        totalMarks: new Prisma.Decimal('50.00'),
+        weight: new Prisma.Decimal('50.00'),
+        examDate: new Date('2026-11-20'),
+        isPublished: false,
+      },
+    ];
+    for (const assessment of assessments) {
+      const key = `${assessment.offeringId}:${assessment.type}`;
+      if (existingExamTypes.has(key)) continue;
+      examRows.push(assessment);
+      existingExamTypes.add(key);
+    }
+  }
+  await prisma.exam.createMany({
+    data: examRows,
+  });
+
+  // 11. Seed Invoices for first 40 students
+  console.log('💵 Seeding Fee Invoices for 40 students...');
+  const invoiceRows = [];
+  for (let i = 0; i < 40; i++) {
+    const sp = studentProfiles[i];
+    if (!sp) continue;
+    const invNum = `INV-2026-${String(1001 + i)}`;
+    invoiceRows.push({
+      invoiceNumber: invNum,
+      studentId: sp.id,
+      semesterId: currentSemester.id,
+      type: InvoiceType.TUITION,
+      status: i % 2 === 0 ? InvoiceStatus.PAID : InvoiceStatus.UNPAID,
+      totalAmount: new Prisma.Decimal('45000.00'),
+      paidAmount: i % 2 === 0 ? new Prisma.Decimal('45000.00') : new Prisma.Decimal('0.00'),
+      dueDate: addDays(now, 20),
+    });
+  }
+  await prisma.feeInvoice.createMany({
+    data: invoiceRows,
+    skipDuplicates: true,
+  });
 
   console.log('✅ Database Seeding Completed Successfully!');
   console.log(`- 10 Departments`);
