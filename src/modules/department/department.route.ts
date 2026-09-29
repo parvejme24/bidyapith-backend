@@ -16,11 +16,7 @@ router.post(
   DepartmentController.create,
 );
 router.get('/', validateRequest(DepartmentValidation.list), DepartmentController.list);
-router.get(
-  '/:id',
-  validateRequest(DepartmentValidation.idParam),
-  DepartmentController.getById,
-);
+router.get('/:id', validateRequest(DepartmentValidation.idParam), DepartmentController.getById);
 router.patch(
   '/:id',
   auth,

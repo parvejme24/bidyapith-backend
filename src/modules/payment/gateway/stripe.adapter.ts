@@ -1,3 +1,4 @@
+import type Stripe from 'stripe';
 import { config } from '../../../config';
 import { stripe } from '../../../config/stripe';
 import type {
@@ -47,7 +48,7 @@ export class StripeAdapter implements PaymentGatewayAdapter {
   }
 
   async verifyWebhook(rawBody: Buffer, signature: string): Promise<GatewayEvent> {
-    let event: any;
+    let event: Stripe.Event;
     const isDevOrPlaceholder =
       config.NODE_ENV === 'development' ||
       !config.STRIPE_WEBHOOK_SECRET ||

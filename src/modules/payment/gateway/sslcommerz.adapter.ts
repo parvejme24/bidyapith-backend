@@ -17,7 +17,7 @@ export class SslCommerzAdapter implements PaymentGatewayAdapter {
   }
 
   async verifyWebhook(rawBody: Buffer, _signature: string): Promise<GatewayEvent> {
-    let payload: Record<string, any>;
+    let payload: Record<string, unknown>;
     try {
       payload = JSON.parse(rawBody.toString('utf-8'));
     } catch {
@@ -25,7 +25,9 @@ export class SslCommerzAdapter implements PaymentGatewayAdapter {
     }
 
     const transactionRef = String(payload['tran_id'] || payload['transactionRef'] || '');
-    const valId = String(payload['val_id'] || payload['gatewayTransactionId'] || `sslcz_${Date.now()}`);
+    const valId = String(
+      payload['val_id'] || payload['gatewayTransactionId'] || `sslcz_${Date.now()}`,
+    );
     const statusRaw = String(payload['status'] || '').toUpperCase();
     const status: GatewayEvent['status'] =
       statusRaw === 'VALID' || statusRaw === 'VALIDATED' || statusRaw === 'SUCCESS'
