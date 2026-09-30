@@ -14,6 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:seed:faculty": "ts-node --transpile-only script/seed-faculty-instructor.ts",
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit",
     "lint": "biome check ./src ./tests",
