@@ -217,7 +217,10 @@ const INSTRUCTORS_DATA = [
 
   { email: 'mitali.saha@bidyapith.edu', first: 'Mitali', last: 'Saha', dept: 'PHA', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Clinical Pharmacology & Therapeutics', phone: '+8801511223367' },
   { email: 'farhana.islam@bidyapith.edu', first: 'Farhana', last: 'Islam', dept: 'ECO', des: Designation.ASSOCIATE_PROFESSOR, spec: 'Development Economics & Micro-econometrics', phone: '+8801511223368' },
+  { email: 'faculty@bidyapith.edu.bd', first: 'Faculty', last: 'Instructor', dept: 'CSE', des: Designation.ASSISTANT_PROFESSOR, spec: 'Computer Science & Engineering', phone: '+8801711223369' },
 ];
+
+const FACULTY_INSTRUCTOR_INDEX = INSTRUCTORS_DATA.length - 1;
 
 const ADMINS_DATA = [
   { email: 'admin@bidyapith.edu', first: 'System', last: 'Administrator', phone: '+8801700000001', pass: ADMIN_PASSWORD },
@@ -456,6 +459,7 @@ async function main(): Promise<void> {
   console.log('🏛️ Seeding Course Offerings (Assigning sections to Prof. Dr. Ayesha Rahman and other faculty)...');
   const offeringList: { id: string; courseId: string; instructorId: string }[] = [];
   const ayeshaOfferings: { id: string; courseCode: string; section: string }[] = [];
+  const allOfferings: { id: string; courseCode: string; section: string }[] = [];
 
   const sampleOfferings = [
     // --- Dr. Ayesha Rahman (insIdx: 0) Course Sections ---
@@ -465,6 +469,10 @@ async function main(): Promise<void> {
     { code: 'CSE-2202', sec: 'A', room: 'AB2-405', insIdx: 0, day: DayOfWeek.TUESDAY, start: '13:00', end: '14:30' },
     { code: 'CSE-3303', sec: 'A', room: 'AB2-502', insIdx: 0, day: DayOfWeek.SUNDAY, start: '11:00', end: '12:30' },
     { code: 'CSE-4108', sec: 'A', room: 'AB3-208', insIdx: 0, day: DayOfWeek.MONDAY, start: '14:00', end: '15:30' },
+
+    // --- Faculty Instructor (empty sections for attendance and grade entry) ---
+    { code: 'CSE-2201', sec: 'B', room: 'AB2-403', insIdx: FACULTY_INSTRUCTOR_INDEX, day: DayOfWeek.TUESDAY, start: '10:30', end: '12:00' },
+    { code: 'CSE-2303', sec: 'B', room: 'AB2-307', insIdx: FACULTY_INSTRUCTOR_INDEX, day: DayOfWeek.WEDNESDAY, start: '09:00', end: '10:30' },
 
     // --- Other Faculty Course Sections ---
     { code: 'CSE-2201', sec: 'A', room: 'AB2-402', insIdx: 4, day: DayOfWeek.MONDAY, start: '10:30', end: '12:00' },
@@ -498,7 +506,7 @@ async function main(): Promise<void> {
       update: {
         instructorId,
         capacity: 45,
-        enrolledCount: 30,
+        enrolledCount: o.insIdx === 0 ? 22 : 0,
         status: OfferingStatus.OPEN,
         room: o.room,
         deletedAt: null,
@@ -509,12 +517,13 @@ async function main(): Promise<void> {
         instructorId,
         section: o.sec,
         capacity: 45,
-        enrolledCount: 30,
+        enrolledCount: o.insIdx === 0 ? 22 : 0,
         status: OfferingStatus.OPEN,
         room: o.room,
       },
     });
     offeringList.push({ id: offering.id, courseId: cId, instructorId });
+    allOfferings.push({ id: offering.id, courseCode: o.code, section: o.sec });
     if (o.insIdx === 0) {
       ayeshaOfferings.push({ id: offering.id, courseCode: o.code, section: o.sec });
     }
@@ -634,6 +643,12 @@ async function main(): Promise<void> {
   ];
 
   const attendanceRows: { enrollmentId: string; date: Date; status: AttendanceStatus }[] = [];
+  const seededExamScores: {
+    offeringId: string;
+    enrollmentId: string;
+    type: ExamType;
+    marksObtained: string;
+  }[] = [];
 
   for (const [offIdx, aOff] of ayeshaOfferings.entries()) {
     // Assign 22 students to this section
@@ -671,6 +686,12 @@ async function main(): Promise<void> {
         },
       });
 
+      seededExamScores.push(
+        { offeringId: aOff.id, enrollmentId: enrollment.id, type: ExamType.MIDTERM, marksObtained: String(midterm) },
+        { offeringId: aOff.id, enrollmentId: enrollment.id, type: ExamType.ASSIGNMENT, marksObtained: String(assignment) },
+        { offeringId: aOff.id, enrollmentId: enrollment.id, type: ExamType.FINAL, marksObtained: String(final) },
+      );
+
       // Prepare attendance for each date
       for (const [dIdx, attDate] of attendanceDates.entries()) {
         const statusVal =
@@ -695,13 +716,13 @@ async function main(): Promise<void> {
     skipDuplicates: true,
   });
 
-  // 10. Seed Exams for Dr. Ayesha Rahman's Course Offerings (Grading Assessments)
-  console.log("📝 Creating exam assessments for Dr. Ayesha Rahman's course offerings...");
+  // 10. Seed Exams and real marks for assigned offerings
+  console.log('📝 Creating exam assessments and results for assigned offerings...');
   const existingExamTypes = new Set(
     (
       await prisma.exam.findMany({
         where: {
-          offeringId: { in: ayeshaOfferings.map((offering) => offering.id) },
+          offeringId: { in: allOfferings.map((offering) => offering.id) },
           deletedAt: null,
         },
         select: { offeringId: true, type: true },
@@ -709,7 +730,7 @@ async function main(): Promise<void> {
     ).map((exam) => `${exam.offeringId}:${exam.type}`),
   );
   const examRows: Prisma.ExamCreateManyInput[] = [];
-  for (const aOff of ayeshaOfferings) {
+  for (const aOff of allOfferings) {
     const assessments: Prisma.ExamCreateManyInput[] = [
       {
         offeringId: aOff.id,
@@ -717,7 +738,7 @@ async function main(): Promise<void> {
         title: 'Midterm Examination',
         totalMarks: new Prisma.Decimal('30.00'),
         weight: new Prisma.Decimal('30.00'),
-        examDate: new Date('2026-10-15'),
+        examDate: addDays(currentSemester.classStartDate, 25),
         isPublished: true,
       },
       {
@@ -726,7 +747,7 @@ async function main(): Promise<void> {
         title: 'Continuous Assessment & Lab Assignments',
         totalMarks: new Prisma.Decimal('20.00'),
         weight: new Prisma.Decimal('20.00'),
-        examDate: new Date('2026-10-25'),
+        examDate: addDays(currentSemester.classStartDate, 35),
         isPublished: true,
       },
       {
@@ -735,7 +756,7 @@ async function main(): Promise<void> {
         title: 'Semester Final Examination',
         totalMarks: new Prisma.Decimal('50.00'),
         weight: new Prisma.Decimal('50.00'),
-        examDate: new Date('2026-11-20'),
+        examDate: addDays(currentSemester.classStartDate, 60),
         isPublished: false,
       },
     ];
@@ -748,6 +769,31 @@ async function main(): Promise<void> {
   }
   await prisma.exam.createMany({
     data: examRows,
+  });
+
+  const seededExams = await prisma.exam.findMany({
+    where: {
+      offeringId: { in: allOfferings.map((offering) => offering.id) },
+      deletedAt: null,
+    },
+    select: { id: true, offeringId: true, type: true },
+  });
+  const examIdByOfferingAndType = new Map(
+    seededExams.map((exam) => [`${exam.offeringId}:${exam.type}`, exam.id]),
+  );
+  const examResultRows: Prisma.ExamResultCreateManyInput[] = [];
+  for (const score of seededExamScores) {
+    const examId = examIdByOfferingAndType.get(`${score.offeringId}:${score.type}`);
+    if (examId === undefined) continue;
+    examResultRows.push({
+      examId,
+      enrollmentId: score.enrollmentId,
+      marksObtained: new Prisma.Decimal(score.marksObtained),
+    });
+  }
+  await prisma.examResult.createMany({
+    data: examResultRows,
+    skipDuplicates: true,
   });
 
   // 11. Seed Invoices for first 40 students
