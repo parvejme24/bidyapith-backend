@@ -18,6 +18,7 @@ import {
   OFFERING_DETAIL_SELECT,
   OFFERING_SELECT,
   OFFERING_SORT_FIELDS,
+  SCHEDULE_SELECT,
 } from './offering.constant';
 import type {
   IMyTeachingQuery,
@@ -520,10 +521,45 @@ const listMyTeaching = async (userId: string, query: IMyTeachingQuery) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Instructor profile not found');
   }
 
-  return list({
+  const result = await list({
     ...query,
     instructorId: profile.id,
   });
+
+  const offeringIds = result.data.map((o) => o.id);
+  if (offeringIds.length === 0) {
+    return result;
+  }
+
+  const schedules = await prisma.classSchedule.findMany({
+    where: { offeringId: { in: offeringIds } },
+    select: { ...SCHEDULE_SELECT, offeringId: true },
+    orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+  });
+
+  const schedulesByOffering = new Map<
+    string,
+    Array<{ id: string; dayOfWeek: DayOfWeek; startTime: string; endTime: string; room: string | null }>
+  >();
+  for (const s of schedules) {
+    const list = schedulesByOffering.get(s.offeringId) ?? [];
+    list.push({
+      id: s.id,
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      room: s.room,
+    });
+    schedulesByOffering.set(s.offeringId, list);
+  }
+
+  return {
+    ...result,
+    data: result.data.map((offering) => ({
+      ...offering,
+      schedules: schedulesByOffering.get(offering.id) ?? [],
+    })),
+  };
 };
 
 const getById = async (id: string) => {
