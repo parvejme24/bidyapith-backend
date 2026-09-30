@@ -172,7 +172,8 @@ bidyapith-backend/
 | Role | Email | Password | Account State |
 |---|---|---|---|
 | **System Admin** | `admin@bidyapith.edu` | `Admin1234` | Full access across all modules |
-| **Faculty Instructor** | `instructor01@bidyapith.edu` | `Teach1234` | Gradebook, attendance & syllabus |
+| **Faculty Instructor (Standard)** | `instructor01@bidyapith.edu` | `Teach1234` | Gradebook, attendance & syllabus |
+| **Faculty Instructor (Portal)** | `faculty@bidyapith.edu.bd` | `Instructor1234` | Multi-batch roster, attendance & grade entry |
 | **Student (Standard)** | `student01@bidyapith.edu` | `Student1234` | Fully eligible for enrollment |
 | **Student (Overdue)** | `student02@bidyapith.edu` | `Student1234` | Unpaid invoice hold (`402 Required`) |
 | **Student (Low Attendance)** | `student03@bidyapith.edu` | `Student1234` | Attendance < 75% (`examEligible: false`) |
@@ -210,6 +211,7 @@ bidyapith-backend/
    npx prisma generate
    npx prisma migrate dev
    npm run db:seed
+   npm run db:seed:faculty  # Seeds faculty@bidyapith.edu.bd roster & batch attendance
    ```
 
 5. **Start Dev Server:**
